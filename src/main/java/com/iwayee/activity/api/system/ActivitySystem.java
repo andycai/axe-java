@@ -162,7 +162,7 @@ public class ActivitySystem extends BaseSystem {
     }
 
     jo.put("queue", String.format("[%d]", planner));
-    jo.put("queue_sex", String.format("[%d]", planner));
+    jo.put("queue_sex", String.format("[%d]", some.userSex()));
     jo.put("status", ActivityStatus.DOING.ordinal());
 
     // 群活动必须要群管理员才能创建
@@ -238,33 +238,48 @@ public class ActivitySystem extends BaseSystem {
     });
   }
 
-  public void endActivity(Some some) {
-    var aid = some.getUint("aid");
-    var close = some.jsonBool("close"); // 是否结算活动，非结算代表手动终止
-    var inGroup = some.jsonBool("in_group"); // 是否在群组活动
-    var status = close ? ActivityStatus.DONE.ordinal() : ActivityStatus.END.ordinal();
-
-    if (inGroup) {
-      // 是否群管理员
-    } else {
-      //
-    }
-    if (close) { // 结算，计算男女的费用
-      //
-    }
-
-    // TODO:只有发起者或者群管理员才能结束活动
-    dao().act().updateActivityStatus(aid, status, b -> {
-      if (b) {
-        some.ok(new JsonObject().put("activity_id", aid));
-      } else {
+  private void doEndActivity(Some some, int aid, JsonObject jo) {
+    dao().act().updateActivityStatus(aid, jo, b -> {
+      if (!b) {
         some.err(RetCode.ERR_OP);
+        return;
       }
+      some.succeed();
     });
   }
 
-  private void enqueue(Some some, Activity activity) {
-    activity.queue.add(some.userId());
+  public void endActivity(Some some) {
+    var aid = some.getUint("aid");
+    var status = some.jsonBool("end") ? ActivityStatus.END.ordinal() : ActivityStatus.DONE.ordinal();
+    var uid = some.userId();
+    var jo = new JsonObject();
+    jo.put("status", status);
+    jo.put("fee_male", some.jsonInt("fee_male"));
+    jo.put("fee_female", some.jsonInt("fee_female"));
+
+    cache().act().getActivityById(aid, activity -> {
+      if (activity == null) {
+        some.err(RetCode.ERR_ACTIVITY_NO_DATA);
+        return;
+      }
+
+      // 群活动
+      if (activity.isGroupActivity()) {
+        cache().group().getGroupById(activity.group_id, group -> {
+          if (!group.isManager(uid)) {
+            some.err(RetCode.ERR_GROUP_NOT_MANAGER);
+            return;
+          }
+          doEndActivity(some, aid, jo);
+        });
+        return;
+      }
+      doEndActivity(some, aid, jo);
+    });
+  }
+
+  private void enqueue(Some some, int uid, Activity activity, int maleCount, int femaleCount) {
+    activity.enqueue(uid, maleCount, femaleCount);
     cache().act().syncToDB(activity.id, b -> {
       if (!b) {
         some.err(RetCode.ERR_ACTIVITY_UPDATE);
@@ -275,39 +290,69 @@ public class ActivitySystem extends BaseSystem {
   }
 
   /**
-   * 报名
+   * 报名，支持带多人报名
    */
   public void applyActivity(Some some) {
     var aid = some.getUint("aid");
+    var uid = some.userId();
+    var maleCount = some.jsonInt("male_count");
+    var femaleCount = some.jsonInt("female_count");
 
     ActivityCache.getInstance().getActivityById(aid, activity -> {
       if (activity == null) {
         some.err(RetCode.ERR_ACTIVITY_NO_DATA);
         return;
       }
+
+      // 候补数量不能超过10人
+      if (activity.overQuota(uid, (maleCount + femaleCount))) {
+        some.err(RetCode.ERR_ACTIVITY_OVER_QUOTA);
+        return;
+      }
+
       // 必须是群组成员
       if (activity.group_id > 0) {
         cache().group().getGroupById(activity.group_id, group -> {
-          if (!group.isMember(some.userId())) {
+          if (!group.isMember(uid)) {
             some.err(RetCode.ERR_ACTIVITY_CANNOT_APPLY_NOT_IN_GROUP);
             return;
           }
-          enqueue(some, activity);
+          enqueue(some, uid, activity, maleCount, femaleCount);
         });
         return;
       }
-      enqueue(some, activity);
+      enqueue(some, uid, activity, maleCount, femaleCount);
+    });
+  }
+
+  private void dequeue(Some some, int uid, Activity activity, int maleCount, int femaleCount) {
+    activity.dequeue(uid, maleCount, femaleCount);
+    cache().act().syncToDB(activity.id, b -> {
+      if (!b) {
+        some.err(RetCode.ERR_ACTIVITY_UPDATE);
+        return;
+      }
+      some.succeed();
     });
   }
 
   public void cancelActivity(Some some) {
     var aid = some.getInt("aid");
+    var uid = some.userId();
+    var maleCount = some.jsonInt("male_count");
+    var femaleCount = some.jsonInt("female_count");
 
     ActivityCache.getInstance().getActivityById(aid, activity -> {
       if (activity == null) {
         some.err(RetCode.ERR_ACTIVITY_NO_DATA);
         return;
       }
+
+      if (activity.notEnough(uid, (maleCount + femaleCount))) {
+        some.err(RetCode.ERR_ACTIVITY_NOT_ENOUGH);
+        return;
+      }
+
       // 必须是群组成员
       if (activity.group_id > 0) {
         cache().group().getGroupById(activity.group_id, group -> {
@@ -315,18 +360,11 @@ public class ActivitySystem extends BaseSystem {
             some.err(RetCode.ERR_ACTIVITY_CANNOT_APPLY_NOT_IN_GROUP);
             return;
           }
-          enqueue(some, activity);
+          dequeue(some, uid, activity, maleCount, femaleCount);
         });
         return;
       }
-      enqueue(some, activity);
+      dequeue(some, uid, activity, maleCount, femaleCount);
     });
-  }
-
-  /**
-   * 带人
-   */
-  public void bringActivity(Some some) {
-    var aid = some.getInt("aid");
   }
 }

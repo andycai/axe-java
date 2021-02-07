@@ -144,7 +144,6 @@ public class MainVerticle extends AbstractVerticle {
     post("/activities/:aid/end", act, act::endActivity);
     post("/activities/:aid/apply", act, act::applyActivity);
     post("/activities/:aid/cancel", act, act::cancelActivity);
-    post("/activities/:aid/bring", act, act::bringActivity);
 
     put("/activities/:aid", act, act::updateActivity);
 

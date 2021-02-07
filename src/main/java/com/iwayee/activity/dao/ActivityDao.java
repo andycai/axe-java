@@ -142,12 +142,22 @@ public class ActivityDao extends MySQLDao {
     });
   }
 
-  public void updateActivityStatus(int id, int status, Consumer<Boolean> action) {
-    var sql = String.format("UPDATE `activity` SET `status` = ? WHERE id = ?");
+  public void updateActivityStatus(int id, JsonObject jo, Consumer<Boolean> action) {
+    var fields = ""
+      + "status = ?, "
+      + "fee_male = ?, "
+      + "fee_female = ?"
+      ;
+    var sql = String.format("UPDATE `activity` SET %s WHERE `id` = ?", fields);
     conn().onSuccess(conn -> {
       conn
         .preparedQuery(sql)
-        .execute(Tuple.of(status, id))
+        .execute(Tuple.of(
+          jo.getInteger("status"),
+          jo.getInteger("fee_male"),
+          jo.getInteger("fee_female"),
+          id
+        ))
         .onComplete(ar -> {
           if (ar.succeeded()) {
             action.accept(true);
@@ -163,7 +173,7 @@ public class ActivityDao extends MySQLDao {
     });
   }
 
-  public void updateActivityById(int id, JsonObject group, Consumer<Boolean> action) {
+  public void updateActivityById(int id, JsonObject activity, Consumer<Boolean> action) {
     var fields = "quota = ?, "
       + "title = ?, "
       + "remark = ?, "
@@ -182,18 +192,18 @@ public class ActivityDao extends MySQLDao {
       conn
         .preparedQuery(sql)
         .execute(Tuple.of(
-          group.getInteger("quota"),
-          group.getString("title"),
-          group.getString("remark"),
-          group.getInteger("status"),
-          group.getInteger("ahead"),
-          group.getJsonArray("queue").encode(),
-          group.getJsonArray("queue_sex").encode(),
-          group.getInteger("fee_male"),
-          group.getInteger("fee_female"),
-          group.getString("begin_at"),
-          group.getString("end_at"),
-          group.getString("addr"),
+          activity.getInteger("quota"),
+          activity.getString("title"),
+          activity.getString("remark"),
+          activity.getInteger("status"),
+          activity.getInteger("ahead"),
+          activity.getJsonArray("queue").encode(),
+          activity.getJsonArray("queue_sex").encode(),
+          activity.getInteger("fee_male"),
+          activity.getInteger("fee_female"),
+          activity.getString("begin_at"),
+          activity.getString("end_at"),
+          activity.getString("addr"),
           id
         ))
         .onComplete(ar -> {

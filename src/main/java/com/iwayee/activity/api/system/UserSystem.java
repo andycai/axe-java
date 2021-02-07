@@ -49,7 +49,7 @@ public class UserSystem extends BaseSystem {
         cache().user().createUser(jo, uid -> {
           if (uid > 0) {
             var token = jo.getString("token");
-            cache().user().cacheSession(token, uid.intValue());
+            cache().user().cacheSession(token, uid.intValue(), sex);
             cache().user().getUserById(uid.intValue(), user1 -> {
               some.ok(user2Json(user1));
             });
@@ -58,7 +58,7 @@ public class UserSystem extends BaseSystem {
           }
         });
       } else {
-        cache().user().cacheSession(user.token, user.id);
+        cache().user().cacheSession(user.token, user.id, user.sex);
         some.ok(user2Json(user));
       }
     });

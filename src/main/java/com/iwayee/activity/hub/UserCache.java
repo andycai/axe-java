@@ -143,10 +143,11 @@ public class UserCache extends BaseCache {
     }
   }
 
-  public void cacheSession(String token, int uid) {
+  public void cacheSession(String token, int uid, int sex) {
     var session = new UserSession();
     session.token = token;
     session.uid = uid;
+    session.sex = sex;
     session.at = new Date().getTime();
     sessions.put(session.token, session);
   }
@@ -163,6 +164,15 @@ public class UserCache extends BaseCache {
       return 0;
     } else {
       return session.uid;
+    }
+  }
+
+  public int getCurrentUserSex(String token) {
+    var session = sessions.get(token);
+    if (session == null) {
+      return 1;
+    } else {
+      return session.sex;
     }
   }
 

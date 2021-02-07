@@ -9,11 +9,13 @@ public enum RetCode implements IErrorCode {
   ERR_DATA(-101, "数据错误！"),
   ERR_PARAM(-100, "参数错误！"),
 
+  ERR_ACTIVITY_OVER_QUOTA(-307, "报名候补的数量超出限制，请稍后再报名！"),
+  ERR_ACTIVITY_NOT_ENOUGH(-306, "取消报名的数量不正确！"),
   ERR_ACTIVITY_FEE(-305, "选择活动前结算的活动，必须要填写费用！"),
   ERR_ACTIVITY_CREATE(-304, "创建新活动失败！"),
   ERR_ACTIVITY_NOT_PLANNER(-303, "你不是活动发起人，不能更新活动信息！"),
   ERR_ACTIVITY_UPDATE(-302, "更新活动信息失败！"),
-  ERR_ACTIVITY_CANNOT_APPLY_NOT_IN_GROUP(-301, "你不是群组成员不能报名群组活动！"),
+  ERR_ACTIVITY_CANNOT_APPLY_NOT_IN_GROUP(-301, "你不是群组成员不能报名或取消报名群组活动！"),
   ERR_ACTIVITY_NO_DATA(-300, "找不活动数据！"),
 
   ERR_GROUP_APPROVE(-205, "入群审批失败！"),

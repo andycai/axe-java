@@ -23,6 +23,11 @@ public class Some {
     return UserCache.getInstance().getCurrentUserId(token);
   }
 
+  public int userSex() {
+    var token = getToken();
+    return UserCache.getInstance().getCurrentUserSex(token);
+  }
+
   public void checkToken() {
     if (UserCache.getInstance().hasExpired(getToken())) {
       throw new TokenExpiredException("Login session was expired!");
