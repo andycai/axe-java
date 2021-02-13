@@ -41,14 +41,15 @@ public class UserDao extends MySQLDao {
             action.accept(0L);
           }
           conn.close();
-        }).onFailure(ar -> {
-        action.accept(0L);
-        ar.printStackTrace();
-      });
+        })
+        .onFailure(ar -> {
+          action.accept(0L);
+          ar.printStackTrace();
+        });
     });
   }
 
-  public void getUserByUsername(String username, Consumer<JsonObject> action) {
+  public void getUserByName(String username, Consumer<JsonObject> action) {
     var fields = "id,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
     var sql = String.format("SELECT %s FROM `user` WHERE username = ?", fields);
     conn().onSuccess(conn -> {
@@ -59,20 +60,21 @@ public class UserDao extends MySQLDao {
           if (ar.succeeded()) {
             RowSet<Row> rows = ar.result();
             if (rows.size() > 0) {
-              var data = new JsonObject();
+              var jo = new JsonObject();
               for (Row row : rows) {
-                data = row.toJson();
+                jo = row.toJson();
               }
-              action.accept(data);
+              action.accept(jo);
             } else {
               action.accept(null);
             }
           }
           conn.close();
-        }).onFailure(ar -> {
-        action.accept(null);
-        ar.printStackTrace();
-      });
+        })
+        .onFailure(ar -> {
+          action.accept(null);
+          ar.printStackTrace();
+        });
     });
   }
 
@@ -87,11 +89,11 @@ public class UserDao extends MySQLDao {
           if (ar.succeeded()) {
             RowSet<Row> rows = ar.result();
             if (rows.size() > 0) {
-              var data = new JsonObject();
+              var jo = new JsonObject();
               for (Row row : rows) {
-                data = row.toJson();
+                jo = row.toJson();
               }
-              action.accept(data);
+              action.accept(jo);
             } else {
               System.out.println("Failure: " + ar.cause().getMessage());
               action.accept(null);
@@ -105,9 +107,9 @@ public class UserDao extends MySQLDao {
     });
   }
 
-  public void getUsersByList(String ins, Consumer<JsonObject> action) {
+  public void getUsersByIds(String ids, Consumer<JsonObject> action) {
     var fields = "id,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups";
-    var sql = String.format("SELECT %s FROM `user` WHERE id IN(%s)", fields, ins);
+    var sql = String.format("SELECT %s FROM `user` WHERE id IN(%s)", fields, ids);
     conn().onSuccess(conn -> {
       conn.preparedQuery(sql)
         .execute()
@@ -132,13 +134,13 @@ public class UserDao extends MySQLDao {
   }
 
   public void updateUserById(int id, JsonObject user, Consumer<Boolean> action) {
-    var fields = "nick = ?, "
-      + "wx_nick = ?, "
-      + "token = ?, "
-      + "wx_token = ?, "
-      + "ip = ?, "
-      + "groups = ?, "
-      + "activities = ?"
+    var fields = "nick = ?, " +
+      "wx_nick = ?, " +
+      "token = ?, " +
+      "wx_token = ?, " +
+      "ip = ?, " +
+      "groups = ?, " +
+      "activities = ?"
       ;
     var sql = String.format("UPDATE `user` SET %s WHERE `id` = ?", fields);
     conn().onSuccess(conn -> {
@@ -156,22 +158,14 @@ public class UserDao extends MySQLDao {
         ))
         .onComplete(ar -> {
           if (ar.succeeded()) {
-            RowSet<Row> rows = ar.result();
-            var list = new JsonArray();
-            for (Row row : rows) {
-              var jo = row.toJson();
-              list.add(jo);
-            }
             action.accept(true);
-          } else {
-            System.out.println("Failure: " + ar.cause().getMessage());
-            action.accept(false);
           }
           conn.close();
-        }).onFailure(ar -> {
-        action.accept(false);
-        ar.printStackTrace();
-      });
+        })
+        .onFailure(ar -> {
+          action.accept(false);
+          ar.printStackTrace();
+        });
     });
   }
 }

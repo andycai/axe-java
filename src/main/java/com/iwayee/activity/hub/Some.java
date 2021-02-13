@@ -20,17 +20,17 @@ public class Some {
 
   public int userId() {
     var token = getToken();
-    return UserCache.getInstance().getCurrentUserId(token);
+    return UserCache.getInstance().currentId(token);
   }
 
   public int userSex() {
     var token = getToken();
-    return UserCache.getInstance().getCurrentUserSex(token);
+    return UserCache.getInstance().currentSex(token);
   }
 
   public void checkToken() {
-    if (UserCache.getInstance().hasExpired(getToken())) {
-      throw new TokenExpiredException("Login session was expired!");
+    if (UserCache.getInstance().expired(getToken())) {
+      throw new TokenExpiredException("Login session has expired!");
     }
   }
 

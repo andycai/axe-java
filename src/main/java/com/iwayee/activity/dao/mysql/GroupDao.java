@@ -55,11 +55,11 @@ public class GroupDao extends MySQLDao {
           if (ar.succeeded()) {
             RowSet<Row> rows = ar.result();
             if (rows.size() > 0) {
-              var data = new JsonObject();
+              var jo = new JsonObject();
               for (Row row : rows) {
-                data = row.toJson();
+                jo = row.toJson();
               }
-              action.accept(data);
+              action.accept(jo);
             } else {
               System.out.println("Failure: " + ar.cause().getMessage());
               action.accept(null);
@@ -83,12 +83,12 @@ public class GroupDao extends MySQLDao {
         .onComplete(ar -> {
           if (ar.succeeded()) {
             RowSet<Row> rows = ar.result();
-            var list = new JsonArray();
+            var jr = new JsonArray();
             for (Row row : rows) {
               var jo = row.toJson();
-              list.add(jo);
+              jr.add(jo);
             }
-            action.accept(list);
+            action.accept(jr);
           } else {
             System.out.println("Failure: " + ar.cause().getMessage());
             action.accept(new JsonArray());
@@ -111,12 +111,12 @@ public class GroupDao extends MySQLDao {
         .onComplete(ar -> {
           if (ar.succeeded()) {
             RowSet<Row> rows = ar.result();
-            var list = new JsonArray();
+            var jr = new JsonArray();
             for (Row row : rows) {
               var jo = row.toJson();
-              list.add(jo);
+              jr.add(jo);
             }
-            action.accept(list);
+            action.accept(jr);
           } else {
             System.out.println("Failure: " + ar.cause().getMessage());
             action.accept(new JsonArray());
@@ -156,12 +156,6 @@ public class GroupDao extends MySQLDao {
         ))
         .onComplete(ar -> {
           if (ar.succeeded()) {
-            RowSet<Row> rows = ar.result();
-            var list = new JsonArray();
-            for (Row row : rows) {
-              var jo = row.toJson();
-              list.add(jo);
-            }
             action.accept(true);
           } else {
             System.out.println("Failure: " + ar.cause().getMessage());

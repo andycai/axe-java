@@ -45,7 +45,7 @@ public class UserCache extends BaseCache {
       System.out.println("从缓存中获取用户数据：" + username);
     } else {
       System.out.println("从DB中获取用户数据：" + username);
-      dao().user().getUserByUsername(username, data -> {
+      dao().user().getUserByName(username, data -> {
         User user = null;
         if (data != null) {
           user = data.mapTo(User.class);
@@ -126,7 +126,7 @@ public class UserCache extends BaseCache {
     if (idsFromDB.size() > 0) {
       String idStr = joiner.join(idsFromDB);
       System.out.println("从DB中获取用户数据：" + idStr);
-      dao().user().getUsersByList(idStr, data -> {
+      dao().user().getUsersByIds(idStr, data -> {
         if (data != null) {
           data.forEach(value -> {
             var jo = (JsonObject) value.getValue();
@@ -144,12 +144,17 @@ public class UserCache extends BaseCache {
   }
 
   public void cacheSession(String token, int uid, int sex) {
-    var session = new Session();
+    Session session = null;
+    if (sessions.containsKey(token)) {
+      session = sessions.get(token);
+    } else {
+      session = new Session();
+      sessions.put(session.token, session);
+    }
     session.token = token;
     session.uid = uid;
     session.sex = sex;
     session.at = new Date().getTime();
-    sessions.put(session.token, session);
   }
 
   public void clearSession(String token) {
@@ -158,34 +163,30 @@ public class UserCache extends BaseCache {
     }
   }
 
-  public int getCurrentUserId(String token) {
+  // 当前用户id
+  public int currentId(String token) {
     var session = sessions.get(token);
-    if (session == null) {
-      return 0;
-    } else {
+    if (session != null) {
       return session.uid;
     }
+    return 0;
   }
 
-  public int getCurrentUserSex(String token) {
+  public int currentSex(String token) {
     var session = sessions.get(token);
-    if (session == null) {
-      return 1;
-    } else {
+    if (session != null) {
       return session.sex;
     }
+    return 1;
   }
 
-  public boolean hasExpired(String token) {
+  public boolean expired(String token) {
     var session = sessions.get(token);
-    if (session == null) {
-      return true;
+    if (session != null) {
+      var now = new Date().getTime();
+      return (now - session.at) > (2 * 24 * 60 * 60 * 1000);
     }
-    var now = new Date().getTime();
-    if (now - session.at > (2*24*60*60*1000)) {
-      return true;
-    }
-    return false;
+    return true;
   }
 
   public void syncToDB(int id, Consumer<Boolean> action) {

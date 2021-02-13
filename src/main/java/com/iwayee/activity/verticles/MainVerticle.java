@@ -92,6 +92,16 @@ public class MainVerticle extends AbstractVerticle {
     });
   }
 
+  private void delete(String s, Consumer<Some> action) {
+    delete(s, action, true);
+  }
+
+  private void delete(String s, Consumer<Some> action, boolean auth) {
+    router.delete(s).handler(ctx -> {
+      runAction(ctx, action, auth);
+    });
+  }
+
   private void startServer() {
     router = Router.router(vertx);
     var test = Singleton.instance(TestSystem.class);
