@@ -1,7 +1,11 @@
-# axe
+# axe-java
  A program of activity organization using Vert.x Web. (https://www.dota2.com.cn/hero/axe/)
 
- ## 数据库
+## java
+
+使用 java 开发
+
+## 数据库
 
  - MySQL
 
