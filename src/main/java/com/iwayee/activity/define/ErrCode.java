@@ -1,6 +1,6 @@
 package com.iwayee.activity.define;
 
-public enum RetCode implements IErrorCode {
+public enum ErrCode implements IErrorCode {
   SUCCESS(0, "成功"),
 
   ERR_REGISTER(-104, "注册失败！"),
@@ -30,7 +30,7 @@ public enum RetCode implements IErrorCode {
   private int errorCode;
   private String errorDesc;
 
-  RetCode(int errorCode, String errorDesc) {
+  ErrCode(int errorCode, String errorDesc) {
     this.errorCode = errorCode;
     this.errorDesc = errorDesc;
   }

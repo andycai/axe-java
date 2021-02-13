@@ -7,7 +7,7 @@ public class MySQL {
   public int pool_max;
   public String host;
   public String db;
-  public String username;
+  public String user;
   public String password;
   public String charset;
 
@@ -16,7 +16,7 @@ public class MySQL {
     pool_max = data.getInteger("pool_max");
     host = data.getString("host");
     db = data.getString("db");
-    username = data.getString("username");
+    user = data.getString("username");
     password = data.getString("password");
     charset = data.getString("charset");
   }

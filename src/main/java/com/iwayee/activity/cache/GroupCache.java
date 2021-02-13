@@ -1,4 +1,4 @@
-package com.iwayee.activity.hub;
+package com.iwayee.activity.cache;
 
 import com.iwayee.activity.api.comp.Group;
 import com.iwayee.activity.define.GroupPosition;

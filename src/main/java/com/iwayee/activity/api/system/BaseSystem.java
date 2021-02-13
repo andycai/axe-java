@@ -1,6 +1,6 @@
 package com.iwayee.activity.api.system;
 
-import com.iwayee.activity.dao.DaoMgr;
+import com.iwayee.activity.dao.mysql.DaoMgr;
 import com.iwayee.activity.hub.CacheMgr;
 
 public class BaseSystem {

@@ -1,6 +1,6 @@
-package com.iwayee.activity.dao;
+package com.iwayee.activity.dao.mysql;
 
-import com.iwayee.activity.hub.Go;
+import com.iwayee.activity.hub.Hub;
 import com.iwayee.activity.utils.ConfigUtils;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.mysqlclient.MySQLConnectOptions;
@@ -20,7 +20,7 @@ public class DaoMgr {
       .setPort(config.mysql.port)
       .setHost(config.mysql.host)
       .setDatabase(config.mysql.db)
-      .setUser(config.mysql.username)
+      .setUser(config.mysql.user)
       .setPassword(config.mysql.password)
       .setCharset(config.mysql.charset);
 
@@ -29,7 +29,7 @@ public class DaoMgr {
       .setMaxSize(config.mysql.pool_max);
 
     // Create the client pool
-    MySQLPool client = MySQLPool.pool(Go.getInstance().vertx, connectOptions, poolOptions);
+    MySQLPool client = MySQLPool.pool(Hub.getInstance().vertx, connectOptions, poolOptions);
 
     return client;
   }

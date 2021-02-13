@@ -1,6 +1,6 @@
 package com.iwayee.activity.utils;
 
-import com.iwayee.activity.hub.Go;
+import com.iwayee.activity.hub.Hub;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.client.WebClient;
@@ -20,7 +20,7 @@ public class HttpUtils {
 
   public static void webClient() {
     // 创建WebClient，用于发送HTTP或者HTTPS请求
-    WebClient webClient = WebClient.create(Go.getInstance().vertx);
+    WebClient webClient = WebClient.create(Hub.getInstance().vertx);
     // 以get方式请求远程地址
     webClient.getAbs("https://www.sina.com")
       .ssl(true)

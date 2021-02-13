@@ -17,12 +17,12 @@ public class Player {
   }
 
   public JsonObject toJson() {
-    JsonObject data = new JsonObject();
-    data.put("id", id)
+    JsonObject jo = new JsonObject();
+    jo.put("id", id)
       .put("wx_nick", wx_nick)
       .put("nick", nick)
       .put("sex", sex);
-    return data;
+    return jo;
   }
 
   public void fromJson(JsonObject data) {

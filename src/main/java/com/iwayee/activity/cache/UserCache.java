@@ -1,9 +1,9 @@
-package com.iwayee.activity.hub;
+package com.iwayee.activity.cache;
 
 import com.iwayee.activity.api.comp.Member;
 import com.iwayee.activity.api.comp.Player;
 import com.iwayee.activity.api.comp.User;
-import com.iwayee.activity.api.comp.UserSession;
+import com.iwayee.activity.api.comp.Session;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -12,9 +12,9 @@ import java.util.*;
 import java.util.function.Consumer;
 
 public class UserCache extends BaseCache {
-  public Map<String, User> usersForName = new HashMap<>();
-  public Map<Integer, User> usersForId = new HashMap<>();
-  private Map<String, UserSession> sessions = new HashMap<>();
+  private Map<String, User> usersForName = new HashMap<>();
+  private Map<Integer, User> usersForId = new HashMap<>();
+  private Map<String, Session> sessions = new HashMap<>();
 
   public static UserCache getInstance() {
     return Singleton.instance(UserCache.class);
@@ -144,7 +144,7 @@ public class UserCache extends BaseCache {
   }
 
   public void cacheSession(String token, int uid, int sex) {
-    var session = new UserSession();
+    var session = new Session();
     session.token = token;
     session.uid = uid;
     session.sex = sex;

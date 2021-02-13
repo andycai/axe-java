@@ -28,14 +28,14 @@ final public class Activity {
 
   public JsonObject toJson() {
     var jo = new JsonObject();
-    jo.put("id", id);
-    jo.put("status", status);
-    jo.put("quota", quota);
-    jo.put("count", queue.size());
-    jo.put("title", title);
-    jo.put("remark", remark);
-    jo.put("begin_at", begin_at);
-    jo.put("end_at", end_at);
+    jo.put("id", id)
+      .put("status", status)
+      .put("quota", quota)
+      .put("count", queue.size())
+      .put("title", title)
+      .put("remark", remark)
+      .put("begin_at", begin_at)
+      .put("end_at", end_at);
     return jo;
   }
 

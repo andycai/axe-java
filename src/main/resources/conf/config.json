@@ -4,7 +4,7 @@
     "host": "localhost",
     "port": 3306,
     "db": "plan_activity",
-    "username": "devel",
+    "user": "devel",
     "password": "i18n",
     "charset": "utf8",
     "pool_max": 5

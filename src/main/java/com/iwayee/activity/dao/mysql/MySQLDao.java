@@ -1,4 +1,4 @@
-package com.iwayee.activity.dao;
+package com.iwayee.activity.dao.mysql;
 
 import io.vertx.core.Future;
 import io.vertx.mysqlclient.MySQLPool;

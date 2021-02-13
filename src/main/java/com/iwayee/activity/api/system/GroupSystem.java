@@ -1,6 +1,6 @@
 package com.iwayee.activity.api.system;
 
-import com.iwayee.activity.define.RetCode;
+import com.iwayee.activity.define.ErrCode;
 import com.iwayee.activity.hub.Some;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -10,11 +10,11 @@ import java.util.Date;
 
 public class GroupSystem extends BaseSystem {
   public void getGroupById(Some some) {
-    var gid = some.getUint("gid");
+    var gid = some.getUInt("gid");
 
     cache().group().getGroupById(gid, data -> {
       if (data == null) {
-        some.err(RetCode.ERR_DATA);
+        some.err(ErrCode.ERR_DATA);
         return;
       }
 
@@ -23,13 +23,13 @@ public class GroupSystem extends BaseSystem {
         ids.add(((JsonObject)m).getInteger("id"));
       }
       if (ids.size() <= 0) {
-        some.err(RetCode.ERR_DATA);
+        some.err(ErrCode.ERR_DATA);
         return;
       }
 
       cache().user().getUsersByIds(ids, users -> {
         if (users == null) {
-          some.err(RetCode.ERR_DATA);
+          some.err(ErrCode.ERR_DATA);
           return;
         }
         var members = cache().user().toMember(users, data.members);
@@ -41,12 +41,12 @@ public class GroupSystem extends BaseSystem {
   }
 
   public void getGroups(Some some) {
-    var page = some.jsonUint("page");
-    var num = some.jsonUint("num");
+    var page = some.jsonUInt("page");
+    var num = some.jsonUInt("num");
 
     cache().group().getGroups(page, num, data -> {
       if (data == null) {
-        some.err(RetCode.ERR_GROUP_GET_DATA);
+        some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }
       some.ok(data);
@@ -70,7 +70,7 @@ public class GroupSystem extends BaseSystem {
 
     cache().group().create(jo, some.userId(), groupId -> {
       if (groupId <= 0) {
-        some.err(RetCode.ERR_OP);
+        some.err(ErrCode.ERR_OP);
         return;
       }
       some.ok(new JsonObject().put("group_id", groupId));
@@ -78,19 +78,19 @@ public class GroupSystem extends BaseSystem {
   }
 
   public void updateGroup(Some some) {
-    var gid = some.getUint("gid");
+    var gid = some.getUInt("gid");
     var name = some.jsonStr("name");
     var addr = some.jsonStr("addr");
     var logo = some.jsonStr("logo");
     var notice = some.jsonStr("notice");
     cache().group().getGroupById(gid, group -> {
       if (group == null) {
-        some.err(RetCode.ERR_GROUP_GET_DATA);
+        some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }
 
       if (!group.isManager(some.userId())) {
-        some.err(RetCode.ERR_GROUP_NOT_MANAGER);
+        some.err(ErrCode.ERR_GROUP_NOT_MANAGER);
         return;
       }
 
@@ -100,7 +100,7 @@ public class GroupSystem extends BaseSystem {
       group.notice = notice;
       dao().group().updateGroupById(gid, JsonObject.mapFrom(group), b -> {
         if (!b) {
-          some.err(RetCode.ERR_GROUP_UPDATE_OP);
+          some.err(ErrCode.ERR_GROUP_UPDATE_OP);
         }
         some.succeed();
       });
@@ -108,10 +108,10 @@ public class GroupSystem extends BaseSystem {
   }
 
   public void getApplyList(Some some) {
-    var gid = some.getUint("gid");
+    var gid = some.getUInt("gid");
     cache().group().getGroupById(gid, group -> {
       if (group == null) {
-        some.err(RetCode.ERR_GROUP_GET_DATA);
+        some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }
 
@@ -136,12 +136,12 @@ public class GroupSystem extends BaseSystem {
   }
 
   public void apply(Some some) {
-    var gid = some.getUint("gid");
+    var gid = some.getUInt("gid");
     var uid = some.userId();
 
     cache().group().getGroupById(gid, group -> {
       if (group == null) {
-        some.err(RetCode.ERR_GROUP_GET_DATA);
+        some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }
 
@@ -150,7 +150,7 @@ public class GroupSystem extends BaseSystem {
         // 持久化处理
         cache().group().syncToDB(group.id, b -> {
           if (!b) {
-            some.err(RetCode.ERR_GROUP_UPDATE_OP);
+            some.err(ErrCode.ERR_GROUP_UPDATE_OP);
             return;
           }
           some.succeed();
@@ -162,30 +162,30 @@ public class GroupSystem extends BaseSystem {
 
   // 审批申请
   public void approve(Some some) {
-    var gid = some.getUint("gid");
+    var gid = some.getUInt("gid");
     var pass = some.jsonBool("pass");
     var index = some.jsonInt("index");
 
     var uid = some.userId(); // 通过session获取
     cache().group().getGroupById(gid, group -> {
       if (group == null) {
-        some.err(RetCode.ERR_GROUP_GET_DATA);
+        some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }
 
       if (!group.isManager(uid) || index < 0 || index >= group.pending.size()) {
-        some.err(RetCode.ERR_GROUP_APPROVE);
+        some.err(ErrCode.ERR_GROUP_APPROVE);
         return;
       }
 
       var tid = group.pending.getInteger(index);
       if (tid == null || tid < 0) {
-        some.err(RetCode.ERR_GROUP_APPROVE);
+        some.err(ErrCode.ERR_GROUP_APPROVE);
         return;
       }
 
       if (!group.notIn(tid)) {
-        some.err(RetCode.ERR_GROUP_APPROVE);
+        some.err(ErrCode.ERR_GROUP_APPROVE);
         return;
       }
 
@@ -202,7 +202,7 @@ public class GroupSystem extends BaseSystem {
       // 持久化处理
       cache().group().syncToDB(group.id, b -> {
         if (!b) {
-          some.err(RetCode.ERR_GROUP_UPDATE_OP);
+          some.err(ErrCode.ERR_GROUP_UPDATE_OP);
           return;
         }
         some.succeed();
@@ -212,27 +212,27 @@ public class GroupSystem extends BaseSystem {
 
   // 提升管理员
   public void promote(Some some) {
-    var gid = some.getUint("gid");
-    var mid = some.getUint("mid");
+    var gid = some.getUInt("gid");
+    var mid = some.getUInt("mid");
     cache().group().getGroupById(gid, group -> {
       if (group == null) {
-        some.err(RetCode.ERR_GROUP_GET_DATA);
+        some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }
 
       if (!group.isOwner(some.userId())) {
-        some.err(RetCode.ERR_GROUP_PROMOTE);
+        some.err(ErrCode.ERR_GROUP_PROMOTE);
         return;
       }
 
       if (!group.promote(mid)) {
-        some.err(RetCode.ERR_GROUP_PROMOTE);
+        some.err(ErrCode.ERR_GROUP_PROMOTE);
         return;
       }
 
       dao().group().updateGroupById(gid, JsonObject.mapFrom(group), b -> {
         if (!b) {
-          some.err(RetCode.ERR_GROUP_UPDATE_OP);
+          some.err(ErrCode.ERR_GROUP_UPDATE_OP);
           return;
         }
         some.succeed();
@@ -242,27 +242,27 @@ public class GroupSystem extends BaseSystem {
 
   // 转让群主
   public void transfer(Some some) {
-    var gid = some.getUint("gid");
-    var mid = some.getUint("mid");
+    var gid = some.getUInt("gid");
+    var mid = some.getUInt("mid");
     cache().group().getGroupById(gid, group -> {
       if (group == null) {
-        some.err(RetCode.ERR_GROUP_GET_DATA);
+        some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }
 
       if (!group.isOwner(some.userId())) {
-        some.err(RetCode.ERR_GROUP_TRANSFER);
+        some.err(ErrCode.ERR_GROUP_TRANSFER);
         return;
       }
 
       if (!group.transfer(some.userId(), mid)) {
-        some.err(RetCode.ERR_GROUP_TRANSFER);
+        some.err(ErrCode.ERR_GROUP_TRANSFER);
         return;
       }
 
       dao().group().updateGroupById(gid, JsonObject.mapFrom(group), b -> {
         if (!b) {
-          some.err(RetCode.ERR_GROUP_UPDATE_OP);
+          some.err(ErrCode.ERR_GROUP_UPDATE_OP);
           return;
         }
         some.succeed();

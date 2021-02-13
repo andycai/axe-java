@@ -9,9 +9,11 @@ public class Config {
 
   public void fromJson(JsonObject data) {
     port = data.getInteger("port");
-    mysql = new MySQL();
-    mysql.fromJson(data.getJsonObject("mysql"));
-    redis = new Redis();
-    redis.fromJson(data.getJsonObject("redis"));
+    if (mysql == null) {
+      mysql = data.getJsonObject("mysql").mapTo(MySQL.class);
+    }
+    if (redis == null) {
+      redis = data.getJsonObject("redis").mapTo(Redis.class);
+    }
   }
 }

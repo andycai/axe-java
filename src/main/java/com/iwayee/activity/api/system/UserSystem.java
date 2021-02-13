@@ -3,10 +3,9 @@ package com.iwayee.activity.api.system;
 import com.google.common.base.Strings;
 import com.iwayee.activity.api.comp.User;
 import com.iwayee.activity.hub.Some;
-import com.iwayee.activity.hub.UserCache;
 import com.iwayee.activity.config.WeChat;
-import com.iwayee.activity.define.RetCode;
-import com.iwayee.activity.hub.Go;
+import com.iwayee.activity.define.ErrCode;
+import com.iwayee.activity.hub.Hub;
 import com.iwayee.activity.utils.EncryptUtil;
 import com.iwayee.activity.utils.NetUtils;
 import io.vertx.core.json.JsonObject;
@@ -27,7 +26,7 @@ public class UserSystem extends BaseSystem {
   public void login(Some some) {
     var username = some.jsonStr("username");
     var wxNick = some.jsonStr("wx_nick");
-    var sex = some.jsonUint("sex");
+    var sex = some.jsonUInt("sex");
 
     cache().user().getUserByName(username, user -> {
       if (user == null) {
@@ -54,7 +53,7 @@ public class UserSystem extends BaseSystem {
               some.ok(user2Json(user1));
             });
           } else {
-            some.err(RetCode.ERR_AUTH);
+            some.err(ErrCode.ERR_AUTH);
           }
         });
       } else {
@@ -80,7 +79,7 @@ public class UserSystem extends BaseSystem {
     errmsg	string	错误信息
     */
     var url = String.format(WeChat.getSessionURL, "appid", "secret", "js_code");
-    Go.getInstance().getWebClient()
+    Hub.getInstance().getWebClient()
       .getAbs(url)
       .ssl(true)
       .send(ar -> {
@@ -118,7 +117,7 @@ public class UserSystem extends BaseSystem {
         if (lastInsertId > 0) {
           some.ok((new JsonObject()).put("user_id", lastInsertId));
         } else {
-          some.err(RetCode.ERR_REGISTER);
+          some.err(ErrCode.ERR_REGISTER);
         }
       });
     } catch (UnknownHostException e) {
@@ -137,7 +136,7 @@ public class UserSystem extends BaseSystem {
 
     cache().user().getUserByName(username, user -> {
       if (user == null) {
-        some.err(RetCode.ERR_DATA);
+        some.err(ErrCode.ERR_DATA);
       } else {
         some.ok(JsonObject.mapFrom(user));
       }
@@ -145,12 +144,11 @@ public class UserSystem extends BaseSystem {
   }
 
   public void getUser(Some some) {
-    var uid = some.getInt("uid");
-    checkArgument(uid > 0);
+    var uid = some.getUInt("uid");
 
     cache().user().getUserById(uid, user -> {
       if (user == null) {
-        some.err(RetCode.ERR_DATA);
+        some.err(ErrCode.ERR_DATA);
       } else {
         some.ok(user2Json(user));
       }

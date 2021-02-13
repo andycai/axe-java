@@ -1,7 +1,7 @@
 package com.iwayee.activity.verticles;
 
-import com.iwayee.activity.define.RetCode;
-import com.iwayee.activity.hub.Go;
+import com.iwayee.activity.define.ErrCode;
+import com.iwayee.activity.hub.Hub;
 import com.iwayee.activity.api.system.*;
 import com.iwayee.activity.hub.Some;
 import com.iwayee.activity.utils.ConfigUtils;
@@ -22,27 +22,27 @@ public class MainVerticle extends AbstractVerticle {
 
   @Override
   public void start(Promise<Void> startPromise) throws Exception {
-    Go.getInstance().vertx = vertx;
+    Hub.getInstance().vertx = vertx;
     ConfigUtils.getConfig(vertx, () -> {
       startServer();
     });
   }
 
   private void errAuth(RoutingContext ctx) {
-    var ret = RetCode.ERR_AUTH;
+    var ret = ErrCode.ERR_AUTH;
     ctx.json(new JsonObject().put("code", ret.getErrorCode()).put("msg", ret.getErrorDesc()));
   }
 
   private void errArg(RoutingContext ctx) {
-    var ret = RetCode.ERR_PARAM;
+    var ret = ErrCode.ERR_PARAM;
     ctx.json(new JsonObject().put("code", ret.getErrorCode()).put("msg", ret.getErrorDesc()));
   }
 
-  private void route(String s, BaseSystem sys, Consumer<Some> action) {
-    route(s, sys, action, true);
+  private void route(String s, Consumer<Some> action) {
+    route(s, action, true);
   }
 
-  private void runAction(RoutingContext ctx, BaseSystem sys, Consumer<Some> action, boolean auth) {
+  private void runAction(RoutingContext ctx, Consumer<Some> action, boolean auth) {
     try {
       var some = new Some(ctx);
       if (auth) {
@@ -56,39 +56,39 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
-  private void route(String s, BaseSystem sys, Consumer<Some> action, boolean auth) {
+  private void route(String s, Consumer<Some> action, boolean auth) {
     router.route(s).handler(ctx -> {
-      runAction(ctx, sys, action, auth);
+      runAction(ctx, action, auth);
     });
   }
 
-  private void get(String s, BaseSystem sys, Consumer<Some> action) {
-    get(s, sys, action, true);
+  private void get(String s, Consumer<Some> action) {
+    get(s, action, true);
   }
 
-  private void get(String s, BaseSystem sys, Consumer<Some> action, boolean auth) {
+  private void get(String s, Consumer<Some> action, boolean auth) {
     router.get(s).handler(ctx -> {
-      runAction(ctx, sys, action, auth);
+      runAction(ctx, action, auth);
     });
   }
 
-  private void post(String s, BaseSystem sys, Consumer<Some> action) {
-    post(s, sys, action, true);
+  private void post(String s, Consumer<Some> action) {
+    post(s, action, true);
   }
 
-  private void post(String s, BaseSystem sys, Consumer<Some> action, boolean auth) {
+  private void post(String s, Consumer<Some> action, boolean auth) {
     router.post(s).handler(ctx -> {
-      runAction(ctx, sys, action, auth);
+      runAction(ctx, action, auth);
     });
   }
 
-  private void put(String s, BaseSystem sys, Consumer<Some> action) {
-    put(s, sys, action, true);
+  private void put(String s, Consumer<Some> action) {
+    put(s, action, true);
   }
 
-  private void put(String s, BaseSystem sys, Consumer<Some> action, boolean auth) {
+  private void put(String s, Consumer<Some> action, boolean auth) {
     router.put(s).handler(ctx -> {
-      runAction(ctx, sys, action, auth);
+      runAction(ctx, action, auth);
     });
   }
 
@@ -109,43 +109,43 @@ public class MainVerticle extends AbstractVerticle {
 //    }
 
     // 测试
-    route("/test/:case", test, test::exec);
-    route("/test", test, test::exec);
+    route("/test/:case", test::exec);
+    route("/test", test::exec);
 
     // 用户
-    get("/users/:uid", user, user::getUser);
-    get("/users/your/groups", group, group::getGroupsByUserId);
-    get("/users/your/activities", act, act::getActivitiesByUserId);
+    get("/users/:uid", user::getUser);
+    get("/users/your/groups", group::getGroupsByUserId);
+    get("/users/your/activities", act::getActivitiesByUserId);
 
-    post("/login", user, user::login, false);
-    post("/login_wx", user, user::wxLogin, false);
-    post("/register", user, user::register, false);
-    post("/logout", user, user::logout);
+    post("/login", user::login, false);
+    post("/login_wx", user::wxLogin, false);
+    post("/register", user::register, false);
+    post("/logout", user::logout);
 
     // 群组
-    get("/groups/:gid", group, group::getGroupById);
-    get("/groups", group, group::getGroups);
-    get("/groups/:gid/pending", group, group::getApplyList);
-    get("/groups/:gid/activities", act, act::getActivitiesByGroupId);
+    get("/groups/:gid", group::getGroupById);
+    get("/groups", group::getGroups);
+    get("/groups/:gid/pending", group::getApplyList);
+    get("/groups/:gid/activities", act::getActivitiesByGroupId);
 
-    post("/groups", group, group::createGroup);
-    post("/groups/:gid/apply", group, group::apply);
-    post("/groups/:gid/approve", group, group::approve);
-    post("/groups/:gid/promote/:mid", group, group::promote);
-    post("/groups/:gid/transfer/:mid", group, group::transfer);
+    post("/groups", group::createGroup);
+    post("/groups/:gid/apply", group::apply);
+    post("/groups/:gid/approve", group::approve);
+    post("/groups/:gid/promote/:mid", group::promote);
+    post("/groups/:gid/transfer/:mid", group::transfer);
 
-    put("/groups/:gid", group, group::updateGroup);
+    put("/groups/:gid", group::updateGroup);
 
     // 活动
-    get("/activities/:aid", act, act::getActivityById);
-    get("/activities", act, act::getActivities);
+    get("/activities/:aid", act::getActivityById);
+    get("/activities", act::getActivities);
 
-    post("/activities", act, act::createActivity);
-    post("/activities/:aid/end", act, act::endActivity);
-    post("/activities/:aid/apply", act, act::applyActivity);
-    post("/activities/:aid/cancel", act, act::cancelActivity);
+    post("/activities", act::createActivity);
+    post("/activities/:aid/end", act::endActivity);
+    post("/activities/:aid/apply", act::applyActivity);
+    post("/activities/:aid/cancel", act::cancelActivity);
 
-    put("/activities/:aid", act, act::updateActivity);
+    put("/activities/:aid", act::updateActivity);
 
     HttpUtils.startServer(vertx, router);
   }

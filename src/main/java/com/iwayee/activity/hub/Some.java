@@ -1,21 +1,21 @@
 package com.iwayee.activity.hub;
 
 import com.google.common.base.Strings;
-import com.iwayee.activity.define.RetCode;
+import com.iwayee.activity.cache.UserCache;
+import com.iwayee.activity.define.ErrCode;
 import com.iwayee.activity.utils.TokenExpiredException;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
 
 import static com.google.common.base.Preconditions.*;
 
 public class Some {
-  private RoutingContext context;
+  private RoutingContext ctx;
 
   public Some(RoutingContext ctx) {
-    this.context = ctx;
+    this.ctx = ctx;
   }
 
   public int userId() {
@@ -42,41 +42,41 @@ public class Some {
   }
 
   public String getIP() {
-    return context.request().remoteAddress().hostAddress();
+    return ctx.request().remoteAddress().hostAddress();
   }
 
   public HttpServerRequest request() {
-    return context.request();
+    return ctx.request();
   }
 
   public HttpServerResponse response() {
-    return context.response();
+    return ctx.response();
   }
 
   public void json(Object json) {
-    context.json(json);
+    ctx.json(json);
   }
 
-  public int getUint(String key) {
-    var val = Integer.parseInt(context.request().getParam(key));
+  public int getUInt(String key) {
+    var val = Integer.parseInt(ctx.request().getParam(key));
     checkArgument(val > 0);
     return val;
   }
 
   public int getInt(String key) {
-    var val = Integer.parseInt(context.request().getParam(key));
+    var val = Integer.parseInt(ctx.request().getParam(key));
     checkArgument(val >= 0);
     return val;
   }
 
   public String getStr(String key) {
-    var val = context.request().getParam(key);
+    var val = ctx.request().getParam(key);
     checkArgument(!Strings.isNullOrEmpty(val));
     return val;
   }
 
   public JsonObject getJson() {
-    var param = context.getBodyAsJson();
+    var param = ctx.getBodyAsJson();
     checkArgument(param != null);
     return param;
   }
@@ -88,7 +88,7 @@ public class Some {
     return val;
   }
 
-  public int jsonUint(String key) {
+  public int jsonUInt(String key) {
     var param = getJson();
     var val = param.getInteger(key);
     checkArgument(val > 0);
@@ -108,27 +108,24 @@ public class Some {
   }
 
   // 响应前端
-  public void ok(JsonArray data) {
-    context.json(new JsonObject().put("code", 0).put("data", data));
-  }
-
-  public void ok(JsonObject data) {
-    context.json(new JsonObject().put("code", 0).put("data", data));
+  public void ok(Object data) {
+    var code = ErrCode.SUCCESS;
+    ret(code.getErrorCode(), data);
   }
 
   public void succeed() {
-    err(RetCode.SUCCESS);
+    err(ErrCode.SUCCESS);
   }
 
-  public void msg(RetCode code) {
-    err(code);
+  public void ret(int code, Object data) {
+    ctx.json(new JsonObject().put("code", code).put("data", data));
   }
 
-  public void err(RetCode code) {
-    err(code.getErrorCode(), code.getErrorDesc());
+  public void err(ErrCode code) {
+    msg(code.getErrorCode(), code.getErrorDesc());
   }
 
-  public void err(int code, String msg) {
-    context.json(new JsonObject().put("code", code).put("msg", msg));
+  public void msg(int code, String msg) {
+    ctx.json(new JsonObject().put("code", code).put("msg", msg));
   }
 }
