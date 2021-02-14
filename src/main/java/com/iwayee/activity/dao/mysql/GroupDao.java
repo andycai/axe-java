@@ -13,159 +13,114 @@ public class GroupDao extends MySQLDao {
   public void create(JsonObject group, Consumer<Long> action) {
     var fields = "`level`,`name`,`members`,`activities`,`pending`,`notice`,`addr`,`logo`";
     var sql = String.format("INSERT INTO `group` (%s) VALUES (?,?,?,?,?,?,?,?)", fields);
-    conn().onSuccess(conn -> {
-      conn
-        .preparedQuery(sql)
-        .execute(Tuple.of(
-          group.getInteger("level"),
-          group.getString("name"),
-          group.getJsonArray("members").encode(),
-          group.getJsonArray("activities").encode(),
-          group.getJsonArray("pending").encode(),
-          group.getString("notice"),
-          group.getString("addr"),
-          group.getString("logo")
-        ))
-        .onComplete(ar -> {
-          if (ar.succeeded()) {
-            RowSet<Row> rows = ar.result();
-            long lastInsertId = rows.property(MySQLClient.LAST_INSERTED_ID);
-            System.out.println("Last Insert Id: " + lastInsertId);
-            action.accept(lastInsertId);
-          } else {
-            System.out.println("Failure: " + ar.cause().getMessage());
-            action.accept(0L);
-          }
-          conn.close();
-        }).onFailure(ar -> {
-        action.accept(0L);
-        ar.printStackTrace();
-      });
+
+    db().preparedQuery(sql).execute(Tuple.of(
+            group.getInteger("level"),
+            group.getString("name"),
+            group.getJsonArray("members").encode(),
+            group.getJsonArray("activities").encode(),
+            group.getJsonArray("pending").encode(),
+            group.getString("notice"),
+            group.getString("addr"),
+            group.getString("logo")
+    ), ar -> {
+      var lastInsertId = 0L;
+      if (ar.succeeded()) {
+        RowSet<Row> rows = ar.result();
+        lastInsertId = rows.property(MySQLClient.LAST_INSERTED_ID);
+        System.out.println("Last Insert Id: " + lastInsertId);
+      } else {
+        System.out.println("Failure: " + ar.cause().getMessage());
+      }
+      action.accept(lastInsertId);
     });
   }
 
   public void getGroupByID(int id, Consumer<JsonObject> action) {
     var fields = "`id`, `level`,`name`,`logo`,`members`, `pending`,`notice`,`addr`,`activities`";
     var sql = String.format("SELECT %s FROM `group` WHERE id=?", fields);
-    conn().onSuccess(conn -> {
-      conn
-        .preparedQuery(sql)
-        .execute(Tuple.of(id))
-        .onComplete(ar -> {
-          if (ar.succeeded()) {
-            RowSet<Row> rows = ar.result();
-            if (rows.size() > 0) {
-              var jo = new JsonObject();
-              for (Row row : rows) {
-                jo = row.toJson();
-              }
-              action.accept(jo);
-            } else {
-              System.out.println("Failure: " + ar.cause().getMessage());
-              action.accept(null);
-            }
+
+    db().preparedQuery(sql).execute(Tuple.of(id), ar -> {
+      JsonObject jo = null;
+      if (ar.succeeded()) {
+        RowSet<Row> rows = ar.result();
+        if (rows.size() > 0) {
+          for (Row row : rows) {
+            jo = row.toJson();
           }
-          conn.close();
-        }).onFailure(ar -> {
-          action.accept(null);
-          ar.printStackTrace();
-      });
+        } else {
+          System.out.println("Failure: " + ar.cause().getMessage());
+        }
+      }
+      action.accept(jo);
     });
   }
 
   public void getGroups(int page, int num, Consumer<JsonArray> action) {
     var fields = "`id`, `level`,`name`,`logo`,`members`, `pending`, `notice`,`addr`,`activities`";
-    var sql = String.format("SELECT %s FROM `group` LIMIT %d,%d", fields, (page-1)*num, num);
-    conn().onSuccess(conn -> {
-      conn
-        .preparedQuery(sql)
-        .execute()
-        .onComplete(ar -> {
-          if (ar.succeeded()) {
-            RowSet<Row> rows = ar.result();
-            var jr = new JsonArray();
-            for (Row row : rows) {
-              var jo = row.toJson();
-              jr.add(jo);
-            }
-            action.accept(jr);
-          } else {
-            System.out.println("Failure: " + ar.cause().getMessage());
-            action.accept(new JsonArray());
-          }
-          conn.close();
-        }).onFailure(ar -> {
-        action.accept(new JsonArray());
-        ar.printStackTrace();
-      });
+    var sql = String.format("SELECT %s FROM `group` ORDER BY id DESC LIMIT %d,%d", fields, (page - 1) * num, num);
+
+    db().preparedQuery(sql).execute(ar -> {
+      var jr = new JsonArray();
+      if (ar.succeeded()) {
+        RowSet<Row> rows = ar.result();
+        for (Row row : rows) {
+          jr.add(row.toJson());
+        }
+      } else {
+        System.out.println("Failure: " + ar.cause().getMessage());
+      }
+      action.accept(jr);
     });
   }
 
   public void getGroupsByIds(String ids, Consumer<JsonArray> action) {
     var fields = "`id`, `level`,`name`,`logo`,`members`, `pending`, `notice`,`addr`,`activities`";
     var sql = String.format("SELECT %s FROM `group` WHERE `id` IN(%s)", fields, ids);
-    conn().onSuccess(conn -> {
-      conn
-        .preparedQuery(sql)
-        .execute()
-        .onComplete(ar -> {
-          if (ar.succeeded()) {
-            RowSet<Row> rows = ar.result();
-            var jr = new JsonArray();
-            for (Row row : rows) {
-              var jo = row.toJson();
-              jr.add(jo);
-            }
-            action.accept(jr);
-          } else {
-            System.out.println("Failure: " + ar.cause().getMessage());
-            action.accept(new JsonArray());
-          }
-          conn.close();
-        }).onFailure(ar -> {
-        action.accept(new JsonArray());
-        ar.printStackTrace();
-      });
+
+    db().preparedQuery(sql).execute(ar -> {
+      var jr = new JsonArray();
+      if (ar.succeeded()) {
+        RowSet<Row> rows = ar.result();
+        for (Row row : rows) {
+          jr.add(row.toJson());
+        }
+      } else {
+        System.out.println("Failure: " + ar.cause().getMessage());
+      }
+      action.accept(jr);
     });
   }
 
   public void updateGroupById(int id, JsonObject group, Consumer<Boolean> action) {
     var fields = "level = ?, "
-      + "name = ?, "
-      + "logo = ?, "
-      + "notice = ?, "
-      + "addr = ?, "
-      + "members = ?, "
-      + "pending = ?, "
-      + "activities = ?"
-      ;
+            + "name = ?, "
+            + "logo = ?, "
+            + "notice = ?, "
+            + "addr = ?, "
+            + "members = ?, "
+            + "pending = ?, "
+            + "activities = ?";
     var sql = String.format("UPDATE `group` SET %s WHERE `id` = ?", fields);
-    conn().onSuccess(conn -> {
-      conn
-        .preparedQuery(sql)
-        .execute(Tuple.of(
-          group.getInteger("level"),
-          group.getString("name"),
-          group.getString("logo"),
-          group.getString("notice"),
-          group.getString("addr"),
-          group.getJsonArray("members").encode(),
-          group.getJsonArray("pending").encode(),
-          group.getJsonArray("activities").encode(),
-          id
-        ))
-        .onComplete(ar -> {
-          if (ar.succeeded()) {
-            action.accept(true);
-          } else {
-            System.out.println("Failure: " + ar.cause().getMessage());
-            action.accept(false);
-          }
-          conn.close();
-        }).onFailure(ar -> {
-        action.accept(false);
-        ar.printStackTrace();
-      });
+
+    db().preparedQuery(sql).execute(Tuple.of(
+            group.getInteger("level"),
+            group.getString("name"),
+            group.getString("logo"),
+            group.getString("notice"),
+            group.getString("addr"),
+            group.getJsonArray("members").encode(),
+            group.getJsonArray("pending").encode(),
+            group.getJsonArray("activities").encode(),
+            id
+    ), ar -> {
+      var ret = false;
+      if (ar.succeeded()) {
+        ret = true;
+      } else {
+        System.out.println("Failure: " + ar.cause().getMessage());
+      }
+      action.accept(ret);
     });
   }
 }

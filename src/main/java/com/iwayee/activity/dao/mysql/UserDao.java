@@ -1,6 +1,5 @@
 package com.iwayee.activity.dao.mysql;
 
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mysqlclient.MySQLClient;
 import io.vertx.sqlclient.Row;
@@ -11,161 +10,122 @@ import java.util.function.Consumer;
 
 public class UserDao extends MySQLDao {
   public void create(JsonObject user, Consumer<Long> action) {
-    var fields = "username,password,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups";
+    var fields =
+            "username,password,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups";
     var sql = String.format("INSERT INTO user (%s) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", fields);
-    conn().onSuccess(conn -> {
-      conn
-        .preparedQuery(sql)
-        .execute(Tuple.of(
-          user.getString("username"),
-          user.getString("password"),
-          user.getString("token"),
-          user.getString("nick"),
-          user.getString("wx_token"),
-          user.getString("wx_nick"),
-          user.getInteger("sex"),
-          user.getString("phone"),
-          user.getString("email"),
-          user.getString("ip"),
-          user.getString("activities"),
-          user.getString("groups")
-          ))
-        .onComplete(ar -> {
-          if (ar.succeeded()) {
-            RowSet<Row> rows = ar.result();
-            long lastInsertId = rows.property(MySQLClient.LAST_INSERTED_ID);
-            System.out.println("Last Insert Id: " + lastInsertId);
-            action.accept(lastInsertId);
-          } else {
-            System.out.println("Failure: " + ar.cause().getMessage());
-            action.accept(0L);
-          }
-          conn.close();
-        })
-        .onFailure(ar -> {
-          action.accept(0L);
-          ar.printStackTrace();
-        });
-    });
+
+    db().preparedQuery(sql)
+            .execute(
+                    Tuple.of(
+                            user.getString("username"),
+                            user.getString("password"),
+                            user.getString("token"),
+                            user.getString("nick"),
+                            user.getString("wx_token"),
+                            user.getString("wx_nick"),
+                            user.getInteger("sex"),
+                            user.getString("phone"),
+                            user.getString("email"),
+                            user.getString("ip"),
+                            user.getString("activities"),
+                            user.getString("groups")),
+                    ar -> {
+                      var lastInsertId = 0L;
+                      if (ar.succeeded()) {
+                        RowSet<Row> rows = ar.result();
+                        lastInsertId = rows.property(MySQLClient.LAST_INSERTED_ID);
+                        System.out.println("Last Insert Id: " + lastInsertId);
+                      } else {
+                        System.out.println("Failure: " + ar.cause().getMessage());
+                      }
+                      action.accept(lastInsertId);
+                    });
   }
 
   public void getUserByName(String username, Consumer<JsonObject> action) {
-    var fields = "id,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
+    var fields =
+            "id,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
     var sql = String.format("SELECT %s FROM `user` WHERE username = ?", fields);
-    conn().onSuccess(conn -> {
-      conn
-        .preparedQuery(sql)
-        .execute(Tuple.of(username))
-        .onComplete(ar -> {
-          if (ar.succeeded()) {
-            RowSet<Row> rows = ar.result();
-            if (rows.size() > 0) {
-              var jo = new JsonObject();
-              for (Row row : rows) {
-                jo = row.toJson();
-              }
-              action.accept(jo);
-            } else {
-              action.accept(null);
-            }
-          }
-          conn.close();
-        })
-        .onFailure(ar -> {
-          action.accept(null);
-          ar.printStackTrace();
-        });
+
+    db().preparedQuery(sql).execute(Tuple.of(username), ar -> {
+      JsonObject jo = null;
+      if (ar.succeeded()) {
+        RowSet<Row> rows = ar.result();
+        for (Row row : rows) {
+          jo = row.toJson();
+        }
+      } else {
+        System.out.println("Failure: " + ar.cause().getMessage());
+      }
+      action.accept(jo);
     });
   }
 
   public void getUserByID(int id, Consumer<JsonObject> action) {
-    var fields = "id,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
+    var fields =
+            "id,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
     var sql = String.format("SELECT %s FROM `user` WHERE id = ?", fields);
-    conn().onSuccess(conn -> {
-      conn
-        .preparedQuery(sql)
-        .execute(Tuple.of(id))
-        .onComplete(ar -> {
-          if (ar.succeeded()) {
-            RowSet<Row> rows = ar.result();
-            if (rows.size() > 0) {
-              var jo = new JsonObject();
-              for (Row row : rows) {
-                jo = row.toJson();
-              }
-              action.accept(jo);
-            } else {
-              System.out.println("Failure: " + ar.cause().getMessage());
-              action.accept(null);
-            }
-          }
-          conn.close();
-        }).onFailure(ar -> {
-          action.accept(null);
-          ar.printStackTrace();
-      });
+
+    db().preparedQuery(sql).execute(Tuple.of(id), ar -> {
+      JsonObject jo = null;
+      if (ar.succeeded()) {
+        RowSet<Row> rows = ar.result();
+        for (Row row : rows) {
+          jo = row.toJson();
+        }
+      } else {
+        System.out.println("Failure: " + ar.cause().getMessage());
+      }
+      action.accept(jo);
     });
   }
 
   public void getUsersByIds(String ids, Consumer<JsonObject> action) {
     var fields = "id,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups";
     var sql = String.format("SELECT %s FROM `user` WHERE id IN(%s)", fields, ids);
-    conn().onSuccess(conn -> {
-      conn.preparedQuery(sql)
-        .execute()
-        .onComplete(ar -> {
-          if (ar.succeeded()) {
-            RowSet<Row> rows = ar.result();
-            var jo = new JsonObject();
-            for (Row row : rows) {
-              jo.put(row.getInteger("id").toString(), row.toJson());
-            }
-            action.accept(jo);
-          } else {
-            System.out.println("Failure: " + ar.cause().getMessage());
-            action.accept(new JsonObject());
-          }
-          conn.close();
-        }).onFailure(ar -> {
-          action.accept(new JsonObject());
-          ar.printStackTrace();
-      });
+
+    db().preparedQuery(sql).execute(ar -> {
+      var jo = new JsonObject();
+      if (ar.succeeded()) {
+        RowSet<Row> rows = ar.result();
+        for (Row row : rows) {
+          jo.put(row.getInteger("id").toString(), row.toJson());
+        }
+      } else {
+        System.out.println("Failure: " + ar.cause().getMessage());
+      }
+      action.accept(jo);
     });
   }
 
   public void updateUserById(int id, JsonObject user, Consumer<Boolean> action) {
-    var fields = "nick = ?, " +
-      "wx_nick = ?, " +
-      "token = ?, " +
-      "wx_token = ?, " +
-      "ip = ?, " +
-      "groups = ?, " +
-      "activities = ?"
-      ;
+    var fields =
+            "nick = ?, "
+                    + "wx_nick = ?, "
+                    + "token = ?, "
+                    + "wx_token = ?, "
+                    + "ip = ?, "
+                    + "groups = ?, "
+                    + "activities = ?";
     var sql = String.format("UPDATE `user` SET %s WHERE `id` = ?", fields);
-    conn().onSuccess(conn -> {
-      conn
-        .preparedQuery(sql)
-        .execute(Tuple.of(
-          user.getString("nick"),
-          user.getString("wx_nick"),
-          user.getString("token"),
-          user.getString("wx_token"),
-          user.getString("ip"),
-          user.getJsonArray("groups").encode(),
-          user.getJsonArray("activities").encode(),
-          id
-        ))
-        .onComplete(ar -> {
-          if (ar.succeeded()) {
-            action.accept(true);
-          }
-          conn.close();
-        })
-        .onFailure(ar -> {
-          action.accept(false);
-          ar.printStackTrace();
-        });
+
+    db().preparedQuery(sql).execute(Tuple.of(
+            user.getString("nick"),
+            user.getString("wx_nick"),
+            user.getString("token"),
+            user.getString("wx_token"),
+            user.getString("ip"),
+            user.getJsonArray("groups").encode(),
+            user.getJsonArray("activities").encode(),
+            id
+    ), ar -> {
+      var ret = false;
+      if (ar.succeeded()) {
+        ret = true;
+      } else {
+        System.out.println("Failure: " + ar.cause().getMessage());
+      }
+      action.accept(ret);
     });
   }
 }

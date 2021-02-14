@@ -84,7 +84,7 @@ public class ActivityCache extends BaseCache {
     if (idsForDB.size() > 0) {
       var idStr = joiner.join(idsForDB);
       System.out.println("从DB中获取活动数据：" + idStr);
-      dao().act().getActivitiesByList(idStr, data -> {
+      dao().act().getActivitiesByIds(idStr, data -> {
         if (data != null) {
           data.forEach(value -> {
             var jo = (JsonObject) value;
