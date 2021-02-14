@@ -2,8 +2,8 @@ package com.iwayee.activity.cache;
 
 import com.iwayee.activity.api.comp.Member;
 import com.iwayee.activity.api.comp.Player;
-import com.iwayee.activity.api.comp.User;
 import com.iwayee.activity.api.comp.Session;
+import com.iwayee.activity.api.comp.User;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -20,36 +20,36 @@ public class UserCache extends BaseCache {
     return Singleton.instance(UserCache.class);
   }
 
-  private void cacheUser(User user) {
+  private void cache(User user) {
     if (user != null) {
       usersForId.put(user.id, user);
       usersForName.put(user.username, user);
     }
   }
 
-  public void createUser(JsonObject jo, Consumer<Long> action) {
+  public void create(JsonObject jo, Consumer<Long> action) {
     dao().user().create(jo, data -> {
       if (data > 0) {
         jo.put("id", data.intValue());
         var user = jo.mapTo(User.class);
-        cacheUser(user);
+        cache(user);
       }
       action.accept(data);
     });
   }
 
   // 根据 username 获取用户数据
-  public void getUserByName(String username, Consumer<User> action) {
-    if (usersForName.containsKey(username)) {
-      action.accept(usersForName.get(username));
-      System.out.println("从缓存中获取用户数据：" + username);
+  public void getUserByName(String name, Consumer<User> action) {
+    if (usersForName.containsKey(name)) {
+      action.accept(usersForName.get(name));
+      System.out.println("从缓存中获取用户数据：" + name);
     } else {
-      System.out.println("从DB中获取用户数据：" + username);
-      dao().user().getUserByName(username, data -> {
+      System.out.println("从DB中获取用户数据：" + name);
+      dao().user().getUserByName(name, data -> {
         User user = null;
         if (data != null) {
           user = data.mapTo(User.class);
-          cacheUser(user);
+          cache(user);
         }
         action.accept(user);
       });
@@ -67,7 +67,7 @@ public class UserCache extends BaseCache {
         User user = null;
         if (data != null) {
           user = data.mapTo(User.class);
-          cacheUser(user);
+          cache(user);
         }
         action.accept(user);
       });
@@ -131,7 +131,7 @@ public class UserCache extends BaseCache {
           data.forEach(value -> {
             var jo = (JsonObject) value.getValue();
             var user = jo.mapTo(User.class);
-            cacheUser(user);
+            cache(user);
             usersMap.put(user.id, user);
           });
         }

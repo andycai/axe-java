@@ -1,19 +1,16 @@
 package com.iwayee.activity.api.system;
 
-import com.google.common.base.Strings;
 import com.iwayee.activity.api.comp.User;
-import com.iwayee.activity.hub.Some;
 import com.iwayee.activity.config.WeChat;
 import com.iwayee.activity.define.ErrCode;
 import com.iwayee.activity.hub.Hub;
+import com.iwayee.activity.hub.Some;
 import com.iwayee.activity.utils.EncryptUtil;
 import com.iwayee.activity.utils.NetUtils;
 import io.vertx.core.json.JsonObject;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-
-import static com.google.common.base.Preconditions.*;
 
 public class UserSystem extends BaseSystem {
   private JsonObject user2Json(User user) {
@@ -24,28 +21,28 @@ public class UserSystem extends BaseSystem {
   }
 
   public void login(Some some) {
-    var username = some.jsonStr("username");
+    var name = some.jsonStr("username");
     var wxNick = some.jsonStr("wx_nick");
     var sex = some.jsonUInt("sex");
 
-    cache().user().getUserByName(username, user -> {
+    cache().user().getUserByName(name, user -> {
       if (user == null) {
         var ip = some.getIP();
         var jo = new JsonObject();
-        jo.put("username", username)
-          .put("password", "111111")
-          .put("token", EncryptUtil.getMD5Str(username))
-          .put("wx_token", EncryptUtil.getMD5Str(username))
-          .put("wx_nick", wxNick)
-          .put("nick", "")
-          .put("sex", sex)
+        jo.put("username", name)
+                .put("password", "111111")
+                .put("token", EncryptUtil.getMD5Str(name))
+                .put("wx_token", EncryptUtil.getMD5Str(name))
+                .put("wx_nick", wxNick)
+                .put("nick", "")
+                .put("sex", sex)
           .put("phone", "")
           .put("email", "")
           .put("ip", ip)
           .put("activities", "[]")
           .put("groups", "[]")
           ;
-        cache().user().createUser(jo, uid -> {
+        cache().user().create(jo, uid -> {
           if (uid > 0) {
             var token = jo.getString("token");
             cache().user().cacheSession(token, uid.intValue(), sex);
@@ -113,7 +110,7 @@ public class UserSystem extends BaseSystem {
 //      System.out.println(ip);
       param.put("ip", NetUtils.inet_aton(address.getHostAddress()));
 
-      cache().user().createUser(param, lastInsertId -> {
+      cache().user().create(param, lastInsertId -> {
         if (lastInsertId > 0) {
           some.ok((new JsonObject()).put("user_id", lastInsertId));
         } else {
@@ -128,11 +125,11 @@ public class UserSystem extends BaseSystem {
   // 登出
   public void logout(Some some) {
     cache().user().clearSession(some.getToken());
+    some.succeed();
   }
 
-  public void getUserByUsername(Some some) {
+  public void getUserByName(Some some) {
     var username = some.getStr("username");
-    checkArgument(!Strings.isNullOrEmpty(username));
 
     cache().user().getUserByName(username, user -> {
       if (user == null) {

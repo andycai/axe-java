@@ -16,14 +16,14 @@ public class GroupCache extends BaseCache {
     return Singleton.instance(GroupCache.class);
   }
 
-  private void cacheGroup(Group group) {
+  private void cache(Group group) {
     if (group != null) {
       groups.put(group.id, group);
     }
   }
 
-  public void create(JsonObject param, int uid, Consumer<Long> action) {
-    var group = param.mapTo(Group.class);
+  public void create(JsonObject jo, int uid, Consumer<Long> action) {
+    var group = jo.mapTo(Group.class);
     var now = new Date().getTime();
     group.level = 1;
     group.notice = "";
@@ -36,7 +36,7 @@ public class GroupCache extends BaseCache {
     group.activities = new JsonArray();
 
     dao().group().create(JsonObject.mapFrom(group), lastInsertId -> {
-      cacheGroup(group);
+      cache(group);
       action.accept(lastInsertId);
     });
   }
@@ -51,7 +51,7 @@ public class GroupCache extends BaseCache {
         Group group = null;
         if (data != null) {
           group = data.mapTo(Group.class);
-          cacheGroup(group);
+          cache(group);
         }
         action.accept(group);
       });
@@ -86,7 +86,7 @@ public class GroupCache extends BaseCache {
           data.forEach(value -> {
             var jo = (JsonObject) value;
             var group = jo.mapTo(Group.class);
-            cacheGroup(group);
+            cache(group);
             groupsMap.put(group.id, group);
             jr.add(group.toJson());
           });
@@ -116,13 +116,10 @@ public class GroupCache extends BaseCache {
           var jr = new JsonArray();
           for (var g : data) {
             var group = ((JsonObject)g).mapTo(Group.class);
-            cacheGroup(group);
+            cache(group);
             groups.put(group.id, group);
 
             var jo = group.toJson();
-//            var jo = JsonObject.mapFrom(group);
-//            var members = cache().user().toMember(users, group.members);
-//            jo.put("members", members);
             jr.add(jo);
           }
           action.accept(jr);

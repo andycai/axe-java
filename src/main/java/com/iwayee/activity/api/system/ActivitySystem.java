@@ -26,11 +26,7 @@ public class ActivitySystem extends BaseSystem {
       }
       // 活动数据
       cache().act().getActivitiesByIds(user.activities.getList(), acts -> {
-        var jr = new JsonArray();
-        acts.forEach((key, value) -> {
-          jr.add(value.toJson());
-        });
-        some.ok(jr);
+        some.ok(acts);
       });
     });
   }
@@ -51,11 +47,7 @@ public class ActivitySystem extends BaseSystem {
       }
       // 活动数据
       cache().act().getActivitiesByIds(data.activities.getList(), acts -> {
-        var jr = new JsonArray();
-        acts.forEach((key, value) -> {
-          jr.add(value.toJson());
-        });
-        some.ok(jr);
+        some.ok(acts);
       });
     });
   }
@@ -98,8 +90,8 @@ public class ActivitySystem extends BaseSystem {
     });
   }
 
-  private void doCreateActivity(Some some, JsonObject jo, int uid, Group group) {
-    cache().act().createActivity(jo, lastInsertId -> {
+  private void doCreate(Some some, JsonObject jo, int uid, Group group) {
+    cache().act().create(jo, lastInsertId -> {
       if (lastInsertId > 0) {
         cache().user().getUserById(uid, user -> {
           if (user != null) {
@@ -135,7 +127,7 @@ public class ActivitySystem extends BaseSystem {
   }
 
   // 创建获得活动
-  public void createActivity(Some some) {
+  public void create(Some some) {
     var planner = some.userId(); // 通过 session 获取
     var jo = new JsonObject();
     jo.put("planner", planner);
@@ -173,14 +165,14 @@ public class ActivitySystem extends BaseSystem {
           some.err(ErrCode.ERR_ACTIVITY_CANNOT_APPLY_NOT_IN_GROUP);
           return;
         }
-        doCreateActivity(some, jo, some.userId(), group);
+        doCreate(some, jo, some.userId(), group);
       });
       return;
     }
-    doCreateActivity(some, jo, some.userId(), null);
+    doCreate(some, jo, some.userId(), null);
   }
 
-  private void doUpdateActivity(Some some, Activity activity) {
+  private void doUpdate(Some some, Activity activity) {
     cache().act().syncToDB(activity.id, b -> {
       if (!b) {
         some.err(ErrCode.ERR_ACTIVITY_UPDATE);
@@ -190,7 +182,7 @@ public class ActivitySystem extends BaseSystem {
     });
   }
 
-  public void updateActivity(Some some) {
+  public void update(Some some) {
     var aid = some.getUInt("aid");
     var quota = some.jsonUInt("quota");
     var ahead = some.jsonUInt("ahead");
@@ -225,7 +217,7 @@ public class ActivitySystem extends BaseSystem {
             some.err(ErrCode.ERR_ACTIVITY_CANNOT_APPLY_NOT_IN_GROUP);
             return;
           }
-          doUpdateActivity(some, activity);
+          doUpdate(some, activity);
         });
         return;
       }
@@ -234,7 +226,7 @@ public class ActivitySystem extends BaseSystem {
         some.err(ErrCode.ERR_ACTIVITY_NOT_PLANNER);
         return;
       }
-      doUpdateActivity(some, activity);
+      doUpdate(some, activity);
     });
   }
 
