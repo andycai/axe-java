@@ -1,8 +1,10 @@
 package com.iwayee.activity.verticles;
 
+import com.iwayee.activity.api.system.ActivitySystem;
+import com.iwayee.activity.api.system.GroupSystem;
+import com.iwayee.activity.api.system.UserSystem;
 import com.iwayee.activity.define.ErrCode;
 import com.iwayee.activity.hub.Hub;
-import com.iwayee.activity.api.system.*;
 import com.iwayee.activity.hub.Some;
 import com.iwayee.activity.utils.ConfigUtils;
 import com.iwayee.activity.utils.HttpUtils;
@@ -46,7 +48,7 @@ public class MainVerticle extends AbstractVerticle {
     try {
       var some = new Some(ctx);
       if (auth) {
-        some.checkToken();
+//        some.checkToken();
       }
       action.accept(some);
     } catch (IllegalArgumentException e) {
@@ -104,7 +106,6 @@ public class MainVerticle extends AbstractVerticle {
 
   private void startServer() {
     router = Router.router(vertx);
-    var test = Singleton.instance(TestSystem.class);
     var user = Singleton.instance(UserSystem.class);
     var group = Singleton.instance(GroupSystem.class);
     var act = Singleton.instance(ActivitySystem.class);
@@ -117,10 +118,6 @@ public class MainVerticle extends AbstractVerticle {
 //    for(Cookie ck:ccList){
 //      ck.setPath("/");
 //    }
-
-    // 测试
-    route("/test/:case", test::exec);
-    route("/test", test::exec);
 
     // 用户
     get("/users/:uid", user::getUser);
@@ -150,12 +147,12 @@ public class MainVerticle extends AbstractVerticle {
     get("/activities/:aid", act::getActivityById);
     get("/activities", act::getActivities);
 
-    post("/activities", act::createActivity);
+    post("/activities", act::create);
     post("/activities/:aid/end", act::endActivity);
     post("/activities/:aid/apply", act::applyActivity);
     post("/activities/:aid/cancel", act::cancelActivity);
 
-    put("/activities/:aid", act::updateActivity);
+    put("/activities/:aid", act::update);
 
     HttpUtils.startServer(vertx, router);
   }
