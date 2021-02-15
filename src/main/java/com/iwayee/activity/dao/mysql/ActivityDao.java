@@ -46,7 +46,7 @@ public class ActivityDao extends MySQLDao {
   }
 
   public void getActivitiesByType(int type, int status, int page, int num, Consumer<JsonArray> action) {
-    var fields = "`id`,`planner`,`group_id`,`kind`,`type`,`quota`,`title`,`remark`,`status`,`fee_type`,`fee_male`,`fee_female`,`queue`,`addr`,`ahead`,`begin_at`,`end_at`";
+    var fields = "`id`,`planner`,`group_id`,`kind`,`type`,`quota`,`title`,`remark`,`status`,`fee_type`,`fee_male`,`fee_female`,`queue`,`queue_sex`,`addr`,`ahead`,`begin_at`,`end_at`";
     var sql = String.format("SELECT %s FROM `activity` WHERE `type` = ? AND `status` = ? ORDER BY id DESC LIMIT %d, %d", fields, (page - 1) * num, num);
 
     db().preparedQuery(sql).execute(Tuple.of(type, status), ar -> {
@@ -82,7 +82,7 @@ public class ActivityDao extends MySQLDao {
   }
 
   public void getActivitiesByIds(String ids, Consumer<JsonArray> action) {
-    var fields = "`id`,`planner`,`group_id`,`kind`,`type`,`quota`,`title`,`remark`,`status`,`fee_type`,`fee_male`,`fee_female`,`queue`,`addr`,`ahead`,`begin_at`,`end_at`";
+    var fields = "`id`,`planner`,`group_id`,`kind`,`type`,`quota`,`title`,`remark`,`status`,`fee_type`,`fee_male`,`fee_female`,`queue`,`queue_sex`,`addr`,`ahead`,`begin_at`,`end_at`";
     var sql = String.format("SELECT %s FROM activity WHERE id IN(%s)", fields, ids);
 
     db().preparedQuery(sql).execute(ar -> {

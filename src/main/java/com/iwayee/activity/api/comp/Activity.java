@@ -7,6 +7,7 @@ import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 
 final public class Activity {
+  public static final int OVERFLOW = 10;
   public int id;
   public int planner;
   public int kind; // 活动分类:1羽毛球,2篮球,3足球,4聚餐...
@@ -39,13 +40,13 @@ final public class Activity {
     return jo;
   }
 
-  public boolean isGroupActivity() {
+  public boolean inGroup() {
     return group_id > 0;
   }
 
   // 报名的人数超过候补的限制，避免乱报名，如带100000人报名
   public boolean overQuota(int uid, int total) {
-    return (queue.size() + total) - quota > 10;
+    return (queue.size() + total) - quota > OVERFLOW;
   }
 
   // 要取消报名的数量超过已经报名的数量
@@ -79,11 +80,11 @@ final public class Activity {
     fixQueue();
     for (int i = 0; i < maleCount; i++) {
       queue.add(uid);
-      queue_sex.add(SexType.SEX_TYPE_MALE.ordinal());
+      queue_sex.add(SexType.MALE.ordinal());
     }
     for (int i = 0; i < femaleCount; i++) {
       queue.add(uid);
-      queue_sex.add(SexType.SEX_TYPE_FEMALE.ordinal());
+      queue_sex.add(SexType.FEMALE.ordinal());
     }
   }
 
@@ -94,15 +95,15 @@ final public class Activity {
     var size = queue.size();
     var posArr = new ArrayList<Integer>();
     for (int i = size - 1; i >= 0; i--) {
-      var val = queue.getInteger(i);
-      if (val == uid) {
+      var id = queue.getInteger(i);
+      if (id == uid) {
         // 男
-        if (queue_sex.getInteger(i) == SexType.SEX_TYPE_MALE.ordinal() && maleCount > mCount) {
+        if (queue_sex.getInteger(i) == SexType.MALE.ordinal() && maleCount > mCount) {
           mCount += 1;
           posArr.add(i);
         }
         // 女
-        if (queue_sex.getInteger(i) == SexType.SEX_TYPE_FEMALE.ordinal() && femaleCount > fCount) {
+        if (queue_sex.getInteger(i) == SexType.FEMALE.ordinal() && femaleCount > fCount) {
           fCount += 1;
           posArr.add(i);
         }

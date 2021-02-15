@@ -149,7 +149,7 @@ public class UserCache extends BaseCache {
       session = sessions.get(token);
     } else {
       session = new Session();
-      sessions.put(session.token, session);
+      sessions.put(token, session);
     }
     session.token = token;
     session.uid = uid;

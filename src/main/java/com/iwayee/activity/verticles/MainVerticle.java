@@ -48,7 +48,7 @@ public class MainVerticle extends AbstractVerticle {
     try {
       var some = new Some(ctx);
       if (auth) {
-//        some.checkToken();
+        some.checkToken();
       }
       action.accept(some);
     } catch (IllegalArgumentException e) {
@@ -148,9 +148,9 @@ public class MainVerticle extends AbstractVerticle {
     get("/activities", act::getActivities);
 
     post("/activities", act::create);
-    post("/activities/:aid/end", act::endActivity);
-    post("/activities/:aid/apply", act::applyActivity);
-    post("/activities/:aid/cancel", act::cancelActivity);
+    post("/activities/:aid/end", act::end);
+    post("/activities/:aid/apply", act::apply);
+    post("/activities/:aid/cancel", act::cancel);
 
     put("/activities/:aid", act::update);
 

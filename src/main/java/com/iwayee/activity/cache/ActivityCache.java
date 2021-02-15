@@ -47,19 +47,19 @@ public class ActivityCache extends BaseCache {
     }
   }
 
-  public void getActivitiesByType(int type, int status, int page, int num, Consumer<Map<Integer, Activity>> action) {
+  public void getActivitiesByType(int type, int status, int page, int num, Consumer<JsonArray> action) {
     dao().act().getActivitiesByType(type, status, page, num, data -> {
-      var itemMap = new HashMap<Integer, Activity>();
+      var jr = new JsonArray();
       if (!data.isEmpty()) {
         data.forEach(value -> {
           var jo = (JsonObject) value;
           var activity = jo.mapTo(Activity.class);
           // 缓存数据
           cache(activity);
-          itemMap.put(activity.id, activity);
+          jr.add(activity);
         });
       }
-      action.accept(itemMap);
+      action.accept(jr);
     });
   }
 
