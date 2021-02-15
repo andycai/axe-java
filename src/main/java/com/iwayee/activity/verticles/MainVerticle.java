@@ -135,7 +135,7 @@ public class MainVerticle extends AbstractVerticle {
     get("/groups/:gid/pending", group::getApplyList);
     get("/groups/:gid/activities", act::getActivitiesByGroupId);
 
-    post("/groups", group::createGroup);
+    post("/groups", group::create);
     post("/groups/:gid/apply", group::apply);
     post("/groups/:gid/approve", group::approve);
     post("/groups/:gid/promote/:mid", group::promote);

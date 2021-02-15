@@ -58,7 +58,7 @@ public class GroupSystem extends BaseSystem {
     });
   }
 
-  public void createGroup(Some some) {
+  public void create(Some some) {
     var jo = new JsonObject();
     jo.put("name", some.jsonStr("name"));
     jo.put("logo", some.jsonStr("logo"));
@@ -82,24 +82,21 @@ public class GroupSystem extends BaseSystem {
     cache().group().getGroupById(gid, group -> {
       if (group == null) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
-        return;
-      }
-
-      if (!group.isManager(some.userId())) {
+      } else if (!group.isManager(some.userId())) {
         some.err(ErrCode.ERR_GROUP_NOT_MANAGER);
-        return;
+      } else {
+        group.name = name; // TODO:修改名字有次数限制
+        group.addr = addr;
+        group.logo = logo;
+        group.notice = notice;
+        dao().group().updateGroupById(gid, JsonObject.mapFrom(group), b -> {
+          if (b) {
+            some.succeed();
+          } else {
+            some.err(ErrCode.ERR_GROUP_UPDATE_OP);
+          }
+        });
       }
-
-      group.name = name; // TODO:修改名字有次数限制
-      group.addr = addr;
-      group.logo = logo;
-      group.notice = notice;
-      dao().group().updateGroupById(gid, JsonObject.mapFrom(group), b -> {
-        if (!b) {
-          some.err(ErrCode.ERR_GROUP_UPDATE_OP);
-        }
-        some.succeed();
-      });
     });
   }
 
@@ -136,23 +133,19 @@ public class GroupSystem extends BaseSystem {
     var uid = some.userId();
 
     cache().group().getGroupById(gid, group -> {
-      if (group == null) {
-        some.err(ErrCode.ERR_GROUP_GET_DATA);
-        return;
-      }
-
-      if (!group.pending.contains(uid)) {
+      if (group != null && !group.pending.contains(uid)) {
         group.pending.add(uid);
         // 持久化处理
         cache().group().syncToDB(group.id, b -> {
-          if (!b) {
+          if (b) {
+            some.succeed();
+          } else {
             some.err(ErrCode.ERR_GROUP_UPDATE_OP);
-            return;
           }
-          some.succeed();
         });
+      } else {
+        some.err(ErrCode.ERR_GROUP_GET_DATA);
       }
-      some.succeed();
     });
   }
 
@@ -169,22 +162,12 @@ public class GroupSystem extends BaseSystem {
         return;
       }
 
-      if (!group.isManager(uid) || index < 0 || index >= group.pending.size()) {
+      if (!group.isManager(uid) || index >= group.pending.size()) {
         some.err(ErrCode.ERR_GROUP_APPROVE);
         return;
       }
 
       var tid = group.pending.getInteger(index);
-      if (tid == null || tid < 0) {
-        some.err(ErrCode.ERR_GROUP_APPROVE);
-        return;
-      }
-
-      if (!group.notIn(tid)) {
-        some.err(ErrCode.ERR_GROUP_APPROVE);
-        return;
-      }
-
       if (group.notIn(tid)) {
         if (pass) {
           var jo = new JsonObject();
@@ -194,15 +177,18 @@ public class GroupSystem extends BaseSystem {
           group.members.add(jo);
         }
         group.pending.remove(tid);
+
+        // 持久化处理
+        cache().group().syncToDB(group.id, b -> {
+          if (b) {
+            some.succeed();
+          } else {
+            some.err(ErrCode.ERR_GROUP_UPDATE_OP);
+          }
+        });
+      } else {
+        some.err(ErrCode.ERR_GROUP_APPROVE);
       }
-      // 持久化处理
-      cache().group().syncToDB(group.id, b -> {
-        if (!b) {
-          some.err(ErrCode.ERR_GROUP_UPDATE_OP);
-          return;
-        }
-        some.succeed();
-      });
     });
   }
 
@@ -210,13 +196,14 @@ public class GroupSystem extends BaseSystem {
   public void promote(Some some) {
     var gid = some.getUInt("gid");
     var mid = some.getUInt("mid");
+    var uid = some.userId();
     cache().group().getGroupById(gid, group -> {
       if (group == null) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }
 
-      if (!group.isOwner(some.userId())) {
+      if (!group.isOwner(uid)) {
         some.err(ErrCode.ERR_GROUP_PROMOTE);
         return;
       }
@@ -227,11 +214,11 @@ public class GroupSystem extends BaseSystem {
       }
 
       dao().group().updateGroupById(gid, JsonObject.mapFrom(group), b -> {
-        if (!b) {
+        if (b) {
+          some.succeed();
+        } else {
           some.err(ErrCode.ERR_GROUP_UPDATE_OP);
-          return;
         }
-        some.succeed();
       });
     });
   }
@@ -240,28 +227,29 @@ public class GroupSystem extends BaseSystem {
   public void transfer(Some some) {
     var gid = some.getUInt("gid");
     var mid = some.getUInt("mid");
+    var uid = some.userId();
     cache().group().getGroupById(gid, group -> {
       if (group == null) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }
 
-      if (!group.isOwner(some.userId())) {
+      if (!group.isOwner(uid)) {
         some.err(ErrCode.ERR_GROUP_TRANSFER);
         return;
       }
 
-      if (!group.transfer(some.userId(), mid)) {
+      if (!group.transfer(uid, mid)) {
         some.err(ErrCode.ERR_GROUP_TRANSFER);
         return;
       }
 
       dao().group().updateGroupById(gid, JsonObject.mapFrom(group), b -> {
-        if (!b) {
+        if (b) {
+          some.succeed();
+        } else {
           some.err(ErrCode.ERR_GROUP_UPDATE_OP);
-          return;
         }
-        some.succeed();
       });
     });
   }
