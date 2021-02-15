@@ -100,31 +100,16 @@ public class GroupCache extends BaseCache {
 
   public void getGroups(int page, int num, Consumer<JsonArray> action) {
     dao().group().getGroups(page, num, data -> {
-      if (data == null) {
-        action.accept(null);
-      } else {
-        // 先取出所有群组成员总和
-        var ids = new ArrayList<Integer>(); // 这里没做去重处理，获取用户列表时会做
-        for (var g : data) {
-          var group = ((JsonObject)g).mapTo(Group.class);
-          for (var m : group.members) {
-            ids.add(((JsonObject)m).getInteger("id"));
-          }
-        }
+      var jr = new JsonArray();
+      for (var g : data) {
+        var group = ((JsonObject) g).mapTo(Group.class);
+        cache(group);
+        groups.put(group.id, group);
 
-        cache().user().getUsersByIds(ids, users -> {
-          var jr = new JsonArray();
-          for (var g : data) {
-            var group = ((JsonObject)g).mapTo(Group.class);
-            cache(group);
-            groups.put(group.id, group);
-
-            var jo = group.toJson();
-            jr.add(jo);
-          }
-          action.accept(jr);
-        });
+        var jo = group.toJson();
+        jr.add(jo);
       }
+      action.accept(jr);
     });
   }
 

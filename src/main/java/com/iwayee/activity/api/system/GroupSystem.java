@@ -45,10 +45,6 @@ public class GroupSystem extends BaseSystem {
     var num = some.jsonUInt("num");
 
     cache().group().getGroups(page, num, data -> {
-      if (data == null) {
-        some.err(ErrCode.ERR_GROUP_GET_DATA);
-        return;
-      }
       some.ok(data);
     });
   }
