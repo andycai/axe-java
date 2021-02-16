@@ -30,7 +30,7 @@ public class UserSystem extends BaseSystem {
         var ip = some.getIP();
         var jo = new JsonObject();
         jo.put("username", name)
-                .put("password", "111111")
+                .put("password", EncryptUtil.getMD5Str("123456"))
                 .put("token", EncryptUtil.getMD5Str(name))
                 .put("wx_token", EncryptUtil.getMD5Str(name))
                 .put("wx_nick", wxNick)

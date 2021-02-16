@@ -172,6 +172,7 @@ public class GroupSystem extends BaseSystem {
         if (pass) {
           var jo = new JsonObject();
           jo.put("id", tid);
+          jo.put("scores", 0);
           jo.put("pos", 1);
           jo.put("at", new Date().getTime());
           group.members.add(jo);
@@ -213,7 +214,7 @@ public class GroupSystem extends BaseSystem {
         return;
       }
 
-      dao().group().updateGroupById(gid, JsonObject.mapFrom(group), b -> {
+      cache().group().syncToDB(group.id, b -> {
         if (b) {
           some.succeed();
         } else {
@@ -244,7 +245,7 @@ public class GroupSystem extends BaseSystem {
         return;
       }
 
-      dao().group().updateGroupById(gid, JsonObject.mapFrom(group), b -> {
+      cache().group().syncToDB(group.id, b -> {
         if (b) {
           some.succeed();
         } else {

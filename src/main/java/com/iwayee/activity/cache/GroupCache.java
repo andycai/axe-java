@@ -36,7 +36,10 @@ public class GroupCache extends BaseCache {
     group.activities = new JsonArray();
 
     dao().group().create(JsonObject.mapFrom(group), lastInsertId -> {
-      cache(group);
+      if (lastInsertId > 0L) {
+        group.id = lastInsertId.intValue();
+        cache(group);
+      }
       action.accept(lastInsertId);
     });
   }

@@ -44,7 +44,7 @@ public class UserDao extends MySQLDao {
 
   public void getUserByName(String username, Consumer<JsonObject> action) {
     var fields =
-            "id,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
+            "id,scores,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
     var sql = String.format("SELECT %s FROM `user` WHERE username = ?", fields);
 
     db().preparedQuery(sql).execute(Tuple.of(username), ar -> {
@@ -61,9 +61,9 @@ public class UserDao extends MySQLDao {
     });
   }
 
-  public void getUserByID(int id, Consumer<JsonObject> action) {
+  public void getUserById(int id, Consumer<JsonObject> action) {
     var fields =
-            "id,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
+            "id,scores,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
     var sql = String.format("SELECT %s FROM `user` WHERE id = ?", fields);
 
     db().preparedQuery(sql).execute(Tuple.of(id), ar -> {
@@ -81,7 +81,7 @@ public class UserDao extends MySQLDao {
   }
 
   public void getUsersByIds(String ids, Consumer<JsonObject> action) {
-    var fields = "id,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups";
+    var fields = "id,scores,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups";
     var sql = String.format("SELECT %s FROM `user` WHERE id IN(%s)", fields, ids);
 
     db().preparedQuery(sql).execute(ar -> {

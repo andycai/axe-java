@@ -239,7 +239,13 @@ public class ActivitySystem extends BaseSystem {
     });
   }
 
-  private void doEnd(Some some, int aid, JsonObject jo) {
+  private void doEnd(Some some, int fee, int aid, Activity act) {
+    // 结算或者终止
+    act.settle(fee);
+    var jo = new JsonObject();
+    jo.put("status", act.status)
+            .put("fee_male", act.fee_male)
+            .put("fee_female", act.fee_female);
     dao().act().updateActivityStatus(aid, jo, b -> {
       if (!b) {
         some.err(ErrCode.ERR_OP);
@@ -252,12 +258,8 @@ public class ActivitySystem extends BaseSystem {
   // 结算活动
   public void end(Some some) {
     var aid = some.getUInt("aid");
-    var status = some.jsonBool("end") ? ActivityStatus.END.ordinal() : ActivityStatus.DONE.ordinal();
+    var fee = some.jsonInt("fee"); // 单位：分
     var uid = some.userId();
-    var jo = new JsonObject();
-    jo.put("status", status);
-    jo.put("fee_male", some.jsonInt("fee_male"));
-    jo.put("fee_female", some.jsonInt("fee_female"));
 
     cache().act().getActivityById(aid, activity -> {
       if (activity == null) {
@@ -272,11 +274,11 @@ public class ActivitySystem extends BaseSystem {
             some.err(ErrCode.ERR_GROUP_NOT_MANAGER);
             return;
           }
-          doEnd(some, aid, jo);
+          doEnd(some, fee, aid, activity);
         });
         return;
       }
-      doEnd(some, aid, jo);
+      doEnd(some, fee, aid, activity);
     });
   }
 
@@ -346,6 +348,11 @@ public class ActivitySystem extends BaseSystem {
     var uid = some.userId();
     var maleCount = some.jsonInt("male_count");
     var femaleCount = some.jsonInt("female_count");
+
+    if (maleCount + femaleCount <= 0) {
+      some.err(ErrCode.ERR_PARAM);
+      return;
+    }
 
     ActivityCache.getInstance().getActivityById(aid, activity -> {
       if (activity == null) {

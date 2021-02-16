@@ -7,6 +7,7 @@ import io.vertx.core.json.JsonObject;
 final public class Group {
   public int id;
   public int level;
+  public int scores;
   public String name;
   public String logo;
   public String notice;

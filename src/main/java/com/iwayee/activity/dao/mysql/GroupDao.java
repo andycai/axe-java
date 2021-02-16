@@ -37,7 +37,7 @@ public class GroupDao extends MySQLDao {
   }
 
   public void getGroupByID(int id, Consumer<JsonObject> action) {
-    var fields = "`id`, `level`,`name`,`logo`,`members`, `pending`,`notice`,`addr`,`activities`";
+    var fields = "`id`,`scores`,`level`,`name`,`logo`,`members`, `pending`,`notice`,`addr`,`activities`";
     var sql = String.format("SELECT %s FROM `group` WHERE id=?", fields);
 
     db().preparedQuery(sql).execute(Tuple.of(id), ar -> {
@@ -57,7 +57,7 @@ public class GroupDao extends MySQLDao {
   }
 
   public void getGroups(int page, int num, Consumer<JsonArray> action) {
-    var fields = "`id`, `level`,`name`,`logo`,`members`, `pending`, `notice`,`addr`,`activities`";
+    var fields = "`id`,`scores`,`level`,`name`,`logo`,`members`, `pending`, `notice`,`addr`,`activities`";
     var sql = String.format("SELECT %s FROM `group` ORDER BY id DESC LIMIT %d,%d", fields, (page - 1) * num, num);
 
     db().preparedQuery(sql).execute(ar -> {
@@ -75,7 +75,7 @@ public class GroupDao extends MySQLDao {
   }
 
   public void getGroupsByIds(String ids, Consumer<JsonArray> action) {
-    var fields = "`id`, `level`,`name`,`logo`,`members`, `pending`, `notice`,`addr`,`activities`";
+    var fields = "`id`,`scores`,`level`,`name`,`logo`,`members`, `pending`, `notice`,`addr`,`activities`";
     var sql = String.format("SELECT %s FROM `group` WHERE `id` IN(%s)", fields, ids);
 
     db().preparedQuery(sql).execute(ar -> {

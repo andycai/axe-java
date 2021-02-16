@@ -63,7 +63,7 @@ public class UserCache extends BaseCache {
       action.accept(usersForId.get(id));
     } else {
       System.out.println("从DB中获取用户数据：" + id);
-      dao().user().getUserByID(id, data -> {
+      dao().user().getUserById(id, data -> {
         User user = null;
         if (data != null) {
           user = data.mapTo(User.class);

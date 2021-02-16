@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonArray;
 final public class User {
   public int id;
   public int sex;
+  public int scores;
   public String username;
   public String password;
   public String token; // 自定义

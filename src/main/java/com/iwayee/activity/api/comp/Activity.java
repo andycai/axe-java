@@ -1,5 +1,7 @@
 package com.iwayee.activity.api.comp;
 
+import com.iwayee.activity.define.ActivityFeeType;
+import com.iwayee.activity.define.ActivityStatus;
 import com.iwayee.activity.define.SexType;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -30,18 +32,61 @@ final public class Activity {
   public JsonObject toJson() {
     var jo = new JsonObject();
     jo.put("id", id)
-      .put("status", status)
-      .put("quota", quota)
-      .put("count", queue.size())
-      .put("title", title)
-      .put("remark", remark)
-      .put("begin_at", begin_at)
-      .put("end_at", end_at);
+            .put("status", status)
+            .put("quota", quota)
+            .put("count", queue.size())
+            .put("title", title)
+            .put("remark", remark)
+            .put("begin_at", begin_at)
+            .put("end_at", end_at);
     return jo;
   }
 
   public boolean inGroup() {
     return group_id > 0;
+  }
+
+  private int totalCount() { // 最终确定报名人数
+    var c = 0;
+    var size = queue.size();
+    if (quota >= size) c = size;
+    else c = quota;
+    return c;
+  }
+
+  private int maleCount() {
+    var c = 0;
+    var count = totalCount();
+    for (int i = 0; i < count; i++) {
+      if (queue_sex.getInteger(i) == SexType.MALE.ordinal()) {
+        c += 1;
+      }
+    }
+    return c;
+  }
+
+  private int femaleCount() {
+    var c = 0;
+    var count = totalCount();
+    for (int i = 0; i < count; i++) {
+      if (queue_sex.getInteger(i) == SexType.FEMALE.ordinal()) {
+        c += 1;
+      }
+    }
+    return c;
+  }
+
+  public void settle(int fee) {
+    status = (fee > 0) ? ActivityStatus.DONE.ordinal() : ActivityStatus.END.ordinal();
+    if (fee_type == ActivityFeeType.FEE_TYPE_AFTER_AA.ordinal()) {
+      var cost = Math.round((float) fee / totalCount());
+      fee_male = cost;
+      fee_female = cost;
+    } else if (fee_type == ActivityFeeType.FEE_TYPE_AFTER_AB.ordinal()) {
+      fee_female = Math.round(((float) fee - (fee_male * maleCount())) / femaleCount());
+    } else if (fee_type == ActivityFeeType.FEE_TYPE_AFTER_BA.ordinal()) {
+      fee_male = Math.round(((float) fee - (fee_female * femaleCount())) / maleCount());
+    }
   }
 
   // 报名的人数超过候补的限制，避免乱报名，如带100000人报名
