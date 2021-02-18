@@ -22,7 +22,7 @@ public class GroupCache extends BaseCache {
     }
   }
 
-  public void create(JsonObject jo, int uid, Consumer<Long> action) {
+  public void create(JsonObject jo, long uid, Consumer<Long> action) {
     var group = jo.mapTo(Group.class);
     var now = new Date().getTime();
     group.level = 1;

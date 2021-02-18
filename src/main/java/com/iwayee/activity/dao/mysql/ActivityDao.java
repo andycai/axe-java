@@ -63,7 +63,7 @@ public class ActivityDao extends MySQLDao {
     });
   }
 
-  public void getActivityById(int id, Consumer<JsonObject> action) {
+  public void getActivityById(long id, Consumer<JsonObject> action) {
     var fields = "`id`,`planner`,`group_id`,`kind`,`type`,`quota`,`title`,`remark`,`status`,`fee_type`,`fee_male`,`fee_female`,`queue`,`queue_sex`,`addr`,`ahead`,`begin_at`,`end_at`";
     var sql = String.format("SELECT %s FROM `activity` WHERE id=?", fields);
 
@@ -99,7 +99,7 @@ public class ActivityDao extends MySQLDao {
     });
   }
 
-  public void updateActivityStatus(int id, JsonObject act, Consumer<Boolean> action) {
+  public void updateActivityStatus(long id, JsonObject act, Consumer<Boolean> action) {
     var fields = ""
             + "status = ?, "
             + "fee_male = ?, "
@@ -122,7 +122,7 @@ public class ActivityDao extends MySQLDao {
     });
   }
 
-  public void updateActivityById(int id, JsonObject activity, Consumer<Boolean> action) {
+  public void updateActivityById(long id, JsonObject activity, Consumer<Boolean> action) {
     var fields = "quota = ?, "
             + "title = ?, "
             + "remark = ?, "

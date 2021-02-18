@@ -27,10 +27,10 @@ final public class Group {
   }
 
   // 是否群成员
-  public boolean isMember(int uid) {
+  public boolean isMember(long uid) {
     for (var item : members) {
-      var jo = (JsonObject)item;
-      if (jo.getInteger("id") == uid) {
+      var jo = (JsonObject) item;
+      if (jo.getLong("id") == uid) {
         return true;
       }
     }
@@ -38,11 +38,11 @@ final public class Group {
   }
 
   // 是否群主
-  public boolean isOwner(int uid) {
+  public boolean isOwner(long uid) {
     for (var item : members) {
-      var jo = (JsonObject)item;
-      if (jo.getInteger("id") == uid
-        && jo.getInteger("pos") == GroupPosition.POS_OWNER.ordinal()) {
+      var jo = (JsonObject) item;
+      if (jo.getLong("id") == uid
+              && jo.getInteger("pos") == GroupPosition.POS_OWNER.ordinal()) {
         return true;
       }
     }
@@ -50,11 +50,11 @@ final public class Group {
   }
 
   // 是否群管理员
-  public boolean isManager(int uid) {
+  public boolean isManager(long uid) {
     for (var item : members) {
-      var jo = (JsonObject)item;
-      if (jo.getInteger("id") == uid
-        && jo.getInteger("pos") > GroupPosition.POS_MEMBER.ordinal()) {
+      var jo = (JsonObject) item;
+      if (jo.getLong("id") == uid
+              && jo.getInteger("pos") > GroupPosition.POS_MEMBER.ordinal()) {
         return true;
       }
     }
@@ -72,16 +72,16 @@ final public class Group {
     return count;
   }
 
-  public void addActivity(int aid) {
+  public void addActivity(long aid) {
     if (!activities.contains(aid)) {
       activities.add(aid);
     }
   }
 
-  public boolean promote(int uid) {
+  public boolean promote(long uid) {
     for (var item : members) {
-      var jo = (JsonObject)item;
-      if (jo.getInteger("id") == uid) {
+      var jo = (JsonObject) item;
+      if (jo.getLong("id") == uid) {
         jo.put("pos", GroupPosition.POS_MANAGER.ordinal());
         return true;
       }
@@ -89,15 +89,15 @@ final public class Group {
     return false;
   }
 
-  public boolean transfer(int uid, int mid) {
+  public boolean transfer(long uid, long mid) {
     var b = false;
     for (var item : members) {
-      var jo = (JsonObject)item;
+      var jo = (JsonObject) item;
       // 外部自行判断权限
-      if (jo.getInteger("id") == uid) {
+      if (jo.getLong("id") == uid) {
         jo.put("pos", GroupPosition.POS_MEMBER.ordinal());
       }
-      if (jo.getInteger("id") == mid) {
+      if (jo.getLong("id") == mid) {
         jo.put("pos", GroupPosition.POS_OWNER.ordinal());
         b = true;
       }
@@ -105,10 +105,10 @@ final public class Group {
     return b;
   }
 
-  public boolean notIn(int uid) {
+  public boolean notIn(long uid) {
     for (var item : members) {
-      var jo = (JsonObject)item;
-      if (jo.getInteger("id") == uid) {
+      var jo = (JsonObject) item;
+      if (jo.getLong("id") == uid) {
         return false;
       }
     }

@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.function.Consumer;
 
 public class ActivityCache extends BaseCache {
-  private Map<Integer, Activity> activities = new HashMap<>();
+  private Map<Long, Activity> activities = new HashMap<>();
 
   public static ActivityCache getInstance() {
     return Singleton.instance(ActivityCache.class);
@@ -23,14 +23,14 @@ public class ActivityCache extends BaseCache {
     dao().act().create(jo, newId -> {
       if (newId > 0L) {
         var activity = jo.mapTo(Activity.class);
-        activity.id = newId.intValue();
+        activity.id = newId;
         activities.put(activity.id, activity);
       }
       action.accept(newId);
     });
   }
 
-  public void getActivityById(int id, Consumer<Activity> action) {
+  public void getActivityById(long id, Consumer<Activity> action) {
     if (activities.containsKey(id)) {
       System.out.println("从缓存中获取活动数据：" + id);
       action.accept(activities.get(id));
@@ -63,17 +63,17 @@ public class ActivityCache extends BaseCache {
     });
   }
 
-  public void getActivitiesByIds(List<Integer> ids, Consumer<JsonArray> action) {
+  public void getActivitiesByIds(List<Long> ids, Consumer<JsonArray> action) {
     var jr = new JsonArray();
-    var idsForDB = new ArrayList<Integer>();
+    var idsForDB = new ArrayList<Long>();
     if (ids.isEmpty()) {
       action.accept(jr);
       return;
     }
 
-    Iterator<Integer> it = ids.iterator();
+    Iterator<Long> it = ids.iterator();
     while (it.hasNext()) {
-      Integer id = it.next();
+      Long id = it.next();
       if (!jr.contains(id)) {
         if (activities.containsKey(id)) {
           jr.add(activities.get(id));
@@ -104,7 +104,7 @@ public class ActivityCache extends BaseCache {
     }
   }
 
-  public void syncToDB(int id, Consumer<Boolean> action) {
+  public void syncToDB(long id, Consumer<Boolean> action) {
     if (activities.containsKey(id)) {
       var activity = activities.get(id);
       dao().act().updateActivityById(id, JsonObject.mapFrom(activity), b -> {

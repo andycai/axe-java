@@ -10,8 +10,8 @@ import java.util.ArrayList;
 
 final public class Activity {
   public static final int OVERFLOW = 10;
-  public int id;
-  public int planner;
+  public long id;
+  public long planner;
   public int kind; // 活动分类:1羽毛球,2篮球,3足球,4聚餐...
   public int type; // 活动类型:1全局保护,2全局公开,3群组
   public int status; // 活动状态:1进行中,2正常结算完成,3手动终止
@@ -90,21 +90,22 @@ final public class Activity {
   }
 
   // 报名的人数超过候补的限制，避免乱报名，如带100000人报名
-  public boolean overQuota(int uid, int total) {
+  public boolean overQuota(int total) {
     return (queue.size() + total) - quota > OVERFLOW;
   }
 
   // 要取消报名的数量超过已经报名的数量
-  public boolean notEnough(int uid, int total) {
+  public boolean notEnough(long uid, int total) {
     var count = 0;
     for (var val : queue) {
-      if ((int)val == uid) {
+      if ((long) val == uid) {
         count += 1;
       }
     }
     return total > count;
   }
 
+  // 长度不一致时，修正使其一致
   public void fixQueue() {
     var df = queue_sex.size() - queue.size();
     if (df > 0) {
@@ -121,7 +122,7 @@ final public class Activity {
     }
   }
 
-  public void enqueue(int uid, int maleCount, int femaleCount) {
+  public void enqueue(long uid, int maleCount, int femaleCount) {
     fixQueue();
     for (int i = 0; i < maleCount; i++) {
       queue.add(uid);
@@ -133,14 +134,14 @@ final public class Activity {
     }
   }
 
-  public void dequeue(int uid, int maleCount, int femaleCount) {
+  public void dequeue(long uid, int maleCount, int femaleCount) {
     fixQueue();
     var mCount = 0;
     var fCount = 0;
     var size = queue.size();
     var posArr = new ArrayList<Integer>();
     for (int i = size - 1; i >= 0; i--) {
-      var id = queue.getInteger(i);
+      var id = queue.getLong(i);
       if (id == uid) {
         // 男
         if (queue_sex.getInteger(i) == SexType.MALE.ordinal() && maleCount > mCount) {

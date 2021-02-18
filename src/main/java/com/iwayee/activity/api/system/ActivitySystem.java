@@ -78,7 +78,7 @@ public class ActivitySystem extends BaseSystem {
 
   // 获得单个活动数据
   public void getActivityById(Some some) {
-    var aid = some.getUInt("aid");
+    var aid = some.getULong("aid");
 
     cache().act().getActivityById(aid, activity -> {
       if (activity == null) {
@@ -98,28 +98,28 @@ public class ActivitySystem extends BaseSystem {
     });
   }
 
-  private void doCreate(Some some, JsonObject jo, int uid, Group group) {
-    cache().act().create(jo, lastInsertId -> {
-      if (lastInsertId > 0) {
+  private void doCreate(Some some, JsonObject jo, long uid, Group group) {
+    cache().act().create(jo, newId -> {
+      if (newId > 0) {
         cache().user().getUserById(uid, user -> {
           if (user != null) {
             // 用户活动列表更新
-            user.addActivity(lastInsertId.intValue());
+            user.addActivity(newId);
             cache().user().syncToDB(uid, b -> {
               if (b) {
                 // 群组活动列表更新
                 if (group != null) {
-                  group.addActivity(lastInsertId.intValue());
+                  group.addActivity(newId);
                   cache().group().syncToDB(group.id, b2 -> {
                     if (b2) {
-                      some.ok((new JsonObject()).put("activity_id", lastInsertId));
+                      some.ok((new JsonObject()).put("activity_id", newId));
                       return;
                     }
                     some.err(ErrCode.ERR_ACTIVITY_CREATE);
                   });
                   return;
                 }
-                some.ok((new JsonObject()).put("activity_id", lastInsertId));
+                some.ok((new JsonObject()).put("activity_id", newId));
                 return;
               }
               some.err(ErrCode.ERR_ACTIVITY_CREATE);
@@ -161,7 +161,7 @@ public class ActivitySystem extends BaseSystem {
       return;
     }
 
-    jo.put("queue", String.format("[%d]", uid));
+    jo.put("queue", String.format("[%Ld]", uid));
     jo.put("queue_sex", String.format("[%d]", some.userSex()));
     jo.put("status", ActivityStatus.DOING.ordinal());
 
@@ -191,7 +191,7 @@ public class ActivitySystem extends BaseSystem {
   }
 
   public void update(Some some) {
-    var aid = some.getUInt("aid");
+    var aid = some.getULong("aid");
     var quota = some.jsonUInt("quota");
     var ahead = some.jsonUInt("ahead");
     var fee_male = some.jsonInt("fee_male");
@@ -239,7 +239,7 @@ public class ActivitySystem extends BaseSystem {
     });
   }
 
-  private void doEnd(Some some, int fee, int aid, Activity act) {
+  private void doEnd(Some some, int fee, long aid, Activity act) {
     // 结算或者终止
     act.settle(fee);
     var jo = new JsonObject();
@@ -257,7 +257,7 @@ public class ActivitySystem extends BaseSystem {
 
   // 结算活动
   public void end(Some some) {
-    var aid = some.getUInt("aid");
+    var aid = some.getULong("aid");
     var fee = some.jsonInt("fee"); // 单位：分
     var uid = some.userId();
 
@@ -282,7 +282,7 @@ public class ActivitySystem extends BaseSystem {
     });
   }
 
-  private void enqueue(Some some, int uid, Activity activity, int maleCount, int femaleCount) {
+  private void enqueue(Some some, long uid, Activity activity, int maleCount, int femaleCount) {
     activity.enqueue(uid, maleCount, femaleCount);
     cache().act().syncToDB(activity.id, b -> {
       if (!b) {
@@ -297,7 +297,7 @@ public class ActivitySystem extends BaseSystem {
    * 报名，支持带多人报名
    */
   public void apply(Some some) {
-    var aid = some.getUInt("aid");
+    var aid = some.getULong("aid");
     var uid = some.userId();
     var maleCount = some.jsonInt("male_count");
     var femaleCount = some.jsonInt("female_count");
@@ -309,7 +309,7 @@ public class ActivitySystem extends BaseSystem {
       }
 
       // 候补数量不能超过10人
-      if (activity.overQuota(uid, (maleCount + femaleCount))) {
+      if (activity.overQuota(maleCount + femaleCount)) {
         some.err(ErrCode.ERR_ACTIVITY_OVER_QUOTA);
         return;
       }
@@ -329,7 +329,7 @@ public class ActivitySystem extends BaseSystem {
     });
   }
 
-  private void dequeue(Some some, int uid, Activity activity, int maleCount, int femaleCount) {
+  private void dequeue(Some some, long uid, Activity activity, int maleCount, int femaleCount) {
     activity.dequeue(uid, maleCount, femaleCount);
     cache().act().syncToDB(activity.id, b -> {
       if (!b) {
@@ -344,7 +344,7 @@ public class ActivitySystem extends BaseSystem {
    * 取消报名，支持取消自带的多人
    */
   public void cancel(Some some) {
-    var aid = some.getUInt("aid");
+    var aid = some.getULong("aid");
     var uid = some.userId();
     var maleCount = some.jsonInt("male_count");
     var femaleCount = some.jsonInt("female_count");

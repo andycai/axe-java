@@ -18,7 +18,7 @@ public class Some {
     this.ctx = ctx;
   }
 
-  public int userId() {
+  public long userId() {
     var token = getToken();
     return UserCache.getInstance().currentId(token);
   }
@@ -57,6 +57,18 @@ public class Some {
     ctx.json(json);
   }
 
+  public long getULong(String key) {
+    var val = Long.parseLong(ctx.request().getParam(key));
+    checkArgument(val > 0);
+    return val;
+  }
+
+  public long getLong(String key) {
+    var val = Long.parseLong(ctx.request().getParam(key));
+    checkArgument(val >= 0);
+    return val;
+  }
+
   public int getUInt(String key) {
     var val = Integer.parseInt(ctx.request().getParam(key));
     checkArgument(val > 0);
@@ -91,6 +103,20 @@ public class Some {
   public int jsonUInt(String key) {
     var param = getJson();
     var val = param.getInteger(key);
+    checkArgument(val > 0);
+    return val;
+  }
+
+  public long jsonLong(String key) {
+    var param = getJson();
+    var val = param.getLong(key);
+    checkArgument(val >= 0);
+    return val;
+  }
+
+  public long jsonULong(String key) {
+    var param = getJson();
+    var val = param.getLong(key);
     checkArgument(val > 0);
     return val;
   }

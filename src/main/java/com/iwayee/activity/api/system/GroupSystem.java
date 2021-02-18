@@ -18,9 +18,9 @@ public class GroupSystem extends BaseSystem {
         return;
       }
 
-      ArrayList<Integer> ids = new ArrayList<>();
+      ArrayList<Long> ids = new ArrayList<>();
       for (var m : data.members) {
-        ids.add(((JsonObject)m).getInteger("id"));
+        ids.add(((JsonObject) m).getLong("id"));
       }
       if (ids.size() <= 0) {
         some.err(ErrCode.ERR_DATA);
@@ -196,7 +196,7 @@ public class GroupSystem extends BaseSystem {
   // 提升管理员
   public void promote(Some some) {
     var gid = some.getUInt("gid");
-    var mid = some.getUInt("mid");
+    var mid = some.getULong("mid");
     var uid = some.userId();
     cache().group().getGroupById(gid, group -> {
       if (group == null) {
@@ -206,6 +206,12 @@ public class GroupSystem extends BaseSystem {
 
       if (!group.isOwner(uid)) {
         some.err(ErrCode.ERR_GROUP_PROMOTE);
+        return;
+      }
+
+      // 不能超过3个副群主
+      if (group.managerCount() >= 3) {
+        some.err(ErrCode.ERR_GROUP_MANAGER_LIMIT);
         return;
       }
 
@@ -227,7 +233,7 @@ public class GroupSystem extends BaseSystem {
   // 转让群主
   public void transfer(Some some) {
     var gid = some.getUInt("gid");
-    var mid = some.getUInt("mid");
+    var mid = some.getULong("mid");
     var uid = some.userId();
     cache().group().getGroupById(gid, group -> {
       if (group == null) {

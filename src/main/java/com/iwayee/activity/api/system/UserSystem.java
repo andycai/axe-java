@@ -36,11 +36,11 @@ public class UserSystem extends BaseSystem {
                 .put("wx_nick", wxNick)
                 .put("nick", "")
                 .put("sex", sex)
-          .put("phone", "")
-          .put("email", "")
-          .put("ip", ip)
-          .put("activities", "[]")
-          .put("groups", "[]")
+                .put("phone", "")
+                .put("email", "")
+                .put("ip", ip)
+                .put("activities", "[]")
+                .put("groups", "[]")
           ;
         cache().user().create(jo, uid -> {
           if (uid > 0) {
@@ -141,7 +141,7 @@ public class UserSystem extends BaseSystem {
   }
 
   public void getUser(Some some) {
-    var uid = some.getUInt("uid");
+    var uid = some.getULong("uid");
 
     cache().user().getUserById(uid, user -> {
       if (user == null) {

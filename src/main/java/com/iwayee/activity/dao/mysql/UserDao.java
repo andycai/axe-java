@@ -61,7 +61,7 @@ public class UserDao extends MySQLDao {
     });
   }
 
-  public void getUserById(int id, Consumer<JsonObject> action) {
+  public void getUserById(long id, Consumer<JsonObject> action) {
     var fields =
             "id,scores,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
     var sql = String.format("SELECT %s FROM `user` WHERE id = ?", fields);
@@ -98,7 +98,7 @@ public class UserDao extends MySQLDao {
     });
   }
 
-  public void updateUserById(int id, JsonObject user, Consumer<Boolean> action) {
+  public void updateUserById(long id, JsonObject user, Consumer<Boolean> action) {
     var fields =
             "nick = ?, "
                     + "wx_nick = ?, "

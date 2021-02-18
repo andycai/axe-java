@@ -2,7 +2,7 @@ package com.iwayee.activity.api.comp;
 
 // 群组成员
 public class Member {
-  public int id;
+  public long id;
   public int scores;
   public int pos; // 职位：1成员，2群主，3副群主
   public int sex;

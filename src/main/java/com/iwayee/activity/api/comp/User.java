@@ -3,7 +3,7 @@ package com.iwayee.activity.api.comp;
 import io.vertx.core.json.JsonArray;
 
 final public class User {
-  public int id;
+  public long id;
   public int sex;
   public int scores;
   public String username;
@@ -20,7 +20,7 @@ final public class User {
   public JsonArray groups;
   public JsonArray activities;
 
-  public void addActivity(int aid) {
+  public void addActivity(long aid) {
     if (!activities.contains(aid)) {
       activities.add(aid);
     }

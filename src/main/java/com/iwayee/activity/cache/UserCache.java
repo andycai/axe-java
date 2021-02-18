@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 
 public class UserCache extends BaseCache {
   private Map<String, User> usersForName = new HashMap<>();
-  private Map<Integer, User> usersForId = new HashMap<>();
+  private Map<Long, User> usersForId = new HashMap<>();
   private Map<String, Session> sessions = new HashMap<>();
 
   public static UserCache getInstance() {
@@ -30,7 +30,7 @@ public class UserCache extends BaseCache {
   public void create(JsonObject jo, Consumer<Long> action) {
     dao().user().create(jo, data -> {
       if (data > 0) {
-        jo.put("id", data.intValue());
+        jo.put("id", data);
         var user = jo.mapTo(User.class);
         cache(user);
       }
@@ -57,7 +57,7 @@ public class UserCache extends BaseCache {
   }
 
   // 根据 id 获取用户数据
-  public void getUserById(Integer id, Consumer<User> action) {
+  public void getUserById(long id, Consumer<User> action) {
     if (usersForId.containsKey(id)) {
       System.out.println("从缓存中获取用户数据：" + id);
       action.accept(usersForId.get(id));
@@ -74,28 +74,28 @@ public class UserCache extends BaseCache {
     }
   }
 
-  public JsonObject users2Json(Map<Integer, User> usersMap) {
+  public JsonObject users2Json(Map<Long, User> usersMap) {
     var jo = new JsonObject();
     usersMap.forEach((key, value) -> {
-      jo.put(key+"", JsonObject.mapFrom(value));
+      jo.put(key + "", JsonObject.mapFrom(value));
     });
     return jo;
   }
 
-  public JsonObject toPlayer(Map<Integer, User> usersMap) {
+  public JsonObject toPlayer(Map<Long, User> usersMap) {
     var jo = new JsonObject();
     usersMap.forEach((key, value) -> {
       var player = new Player();
       player.fromUser(value);
-      jo.put(key+"", player.toJson());
+      jo.put(key + "", player.toJson());
     });
     return jo;
   }
 
-  public JsonArray toMember(Map<Integer, User> usersMap, JsonArray members) {
+  public JsonArray toMember(Map<Long, User> usersMap, JsonArray members) {
     var jr = new JsonArray();
     for (var m : members) {
-      var mb = ((JsonObject)m).mapTo(Member.class);
+      var mb = ((JsonObject) m).mapTo(Member.class);
       mb.fromUser(usersMap.get(mb.id));
       jr.add(JsonObject.mapFrom(mb));
     }
@@ -103,16 +103,16 @@ public class UserCache extends BaseCache {
   }
 
   // 批量获取用户数据
-  public void getUsersByIds(List<Integer> ids, Consumer<Map<Integer, User>> action) {
+  public void getUsersByIds(List<Long> ids, Consumer<Map<Long, User>> action) {
     if (ids.size() <= 0) {
       action.accept(null);
       return;
     }
-    var idsFromDB = new ArrayList<Integer>(); // 需要从DB获取数据的列表
-    var usersMap = new HashMap<Integer, User>();
-    Iterator<Integer> it = ids.iterator();
+    var idsFromDB = new ArrayList<Long>(); // 需要从DB获取数据的列表
+    var usersMap = new HashMap<Long, User>();
+    Iterator<Long> it = ids.iterator();
     while (it.hasNext()) {
-      Integer id = it.next();
+      long id = it.next();
       if (!usersMap.containsKey(id)) {
         if (usersForId.containsKey(id)) {
           usersMap.put(id, usersForId.get(id));
@@ -143,7 +143,7 @@ public class UserCache extends BaseCache {
     }
   }
 
-  public void cacheSession(String token, int uid, int sex) {
+  public void cacheSession(String token, long uid, int sex) {
     Session session = null;
     if (sessions.containsKey(token)) {
       session = sessions.get(token);
@@ -164,7 +164,7 @@ public class UserCache extends BaseCache {
   }
 
   // 当前用户id
-  public int currentId(String token) {
+  public long currentId(String token) {
     var session = sessions.get(token);
     if (session != null) {
       return session.uid;
@@ -189,7 +189,7 @@ public class UserCache extends BaseCache {
     return true;
   }
 
-  public void syncToDB(int id, Consumer<Boolean> action) {
+  public void syncToDB(long id, Consumer<Boolean> action) {
     if (usersForId.containsKey(id)) {
       var user = usersForId.get(id);
       dao().user().updateUserById(id, JsonObject.mapFrom(user), b -> {
