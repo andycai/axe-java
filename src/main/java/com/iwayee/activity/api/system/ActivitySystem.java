@@ -25,7 +25,7 @@ public class ActivitySystem extends BaseSystem {
         return;
       }
       // 活动数据
-      cache().act().getActivitiesByIds(user.activities.getList(), (isOK2, acts) -> {
+      cache().act().getActivitiesByIds(some.toLongList(user.activities), (isOK2, acts) -> {
         var jr = new JsonArray();
         acts.forEach(value -> {
           jr.add(((Activity) value).toJson());
@@ -50,7 +50,7 @@ public class ActivitySystem extends BaseSystem {
         return;
       }
       // 活动数据
-      cache().act().getActivitiesByIds(data.activities.getList(), (isOK2, acts) -> {
+      cache().act().getActivitiesByIds(some.toLongList(data.activities), (isOK2, acts) -> {
         var jr = new JsonArray();
         acts.forEach(value -> {
           jr.add(((Activity) value).toJson());
@@ -84,7 +84,7 @@ public class ActivitySystem extends BaseSystem {
       if (!isOK) {
         some.err(ErrCode.ERR_DATA);
       } else {
-        cache().user().getUsersByIds(activity.queue.getList(), (isOK2, users) -> {
+        cache().user().getUsersByIds(some.toLongList(activity.queue), (isOK2, users) -> {
           var players = new JsonObject();
           if (isOK2) {
             players = cache().user().toPlayer(users);

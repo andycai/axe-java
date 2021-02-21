@@ -111,9 +111,9 @@ public class UserCache extends BaseCache {
     }
     var idsFromDB = new ArrayList<Long>(); // 需要从DB获取数据的列表
     var usersMap = new HashMap<Long, User>();
-    Iterator<Long> it = ids.iterator();
-    while (it.hasNext()) {
-      long id = it.next();
+
+    for (var item : ids) {
+      long id = item.longValue();
       if (!usersMap.containsKey(id)) {
         if (usersForId.containsKey(id)) {
           usersMap.put(id, usersForId.get(id));
@@ -122,6 +122,18 @@ public class UserCache extends BaseCache {
         }
       }
     }
+
+//    Iterator<Long> it = ids.iterator();
+//    while (it.hasNext()) {
+//      long id = it.next();
+//      if (!usersMap.containsKey(id)) {
+//        if (usersForId.containsKey(id)) {
+//          usersMap.put(id, usersForId.get(id));
+//        } else {
+//          idsFromDB.add(id);
+//        }
+//      }
+//    }
 
     // 需要从DB获取
     if (idsFromDB.size() > 0) {

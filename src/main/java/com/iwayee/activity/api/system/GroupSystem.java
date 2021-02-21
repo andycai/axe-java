@@ -117,7 +117,7 @@ public class GroupSystem extends BaseSystem {
       }
 
       if (group.pending.size() > 0) {
-        cache().user().getUsersByIds(group.pending.getList(), (isOK, users) -> {
+        cache().user().getUsersByIds(some.toLongList(group.pending), (isOK, users) -> {
           var jr = new JsonArray();
           users.forEach((key, val) -> {
             var jo = new JsonObject();

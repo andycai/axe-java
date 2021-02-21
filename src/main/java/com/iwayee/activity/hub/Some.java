@@ -6,8 +6,12 @@ import com.iwayee.activity.define.ErrCode;
 import com.iwayee.activity.utils.TokenExpiredException;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.RoutingContext;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import static com.google.common.base.Preconditions.*;
 
@@ -43,6 +47,14 @@ public class Some {
 
   public String getIP() {
     return ctx.request().remoteAddress().hostAddress();
+  }
+
+  public List<Long> toLongList(JsonArray jr) {
+    var list = new ArrayList<Long>();
+    for (var i : jr) {
+      list.add(((Integer) i).longValue());
+    }
+    return list;
   }
 
   public HttpServerRequest request() {

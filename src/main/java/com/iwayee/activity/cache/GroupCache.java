@@ -105,7 +105,7 @@ public class GroupCache extends BaseCache {
   public void getGroups(int page, int num, Action2<Boolean, JsonArray> action) {
     dao().group().getGroups(page, num, (b, data) -> {
       var jr = new JsonArray();
-      if (!b) {
+      if (b) {
         for (var g : data) {
           var group = ((JsonObject) g).mapTo(Group.class);
           cache(group);
