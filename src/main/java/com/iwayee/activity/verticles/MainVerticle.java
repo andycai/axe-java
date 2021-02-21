@@ -4,6 +4,7 @@ import com.iwayee.activity.api.system.ActivitySystem;
 import com.iwayee.activity.api.system.GroupSystem;
 import com.iwayee.activity.api.system.UserSystem;
 import com.iwayee.activity.define.ErrCode;
+import com.iwayee.activity.func.Action;
 import com.iwayee.activity.hub.Hub;
 import com.iwayee.activity.hub.Some;
 import com.iwayee.activity.utils.ConfigUtils;
@@ -16,8 +17,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
-
-import java.util.function.Consumer;
 
 public class MainVerticle extends AbstractVerticle {
   private Router router;
@@ -40,17 +39,17 @@ public class MainVerticle extends AbstractVerticle {
     ctx.json(new JsonObject().put("code", ret.getErrorCode()).put("msg", ret.getErrorDesc()));
   }
 
-  private void route(String s, Consumer<Some> action) {
+  private void route(String s, Action<Some> action) {
     route(s, action, true);
   }
 
-  private void runAction(RoutingContext ctx, Consumer<Some> action, boolean auth) {
+  private void runAction(RoutingContext ctx, Action<Some> action, boolean auth) {
     try {
       var some = new Some(ctx);
       if (auth) {
         some.checkToken();
       }
-      action.accept(some);
+      action.run(some);
     } catch (IllegalArgumentException e) {
       errArg(ctx);
     } catch (TokenExpiredException e) {
@@ -58,47 +57,47 @@ public class MainVerticle extends AbstractVerticle {
     }
   }
 
-  private void route(String s, Consumer<Some> action, boolean auth) {
+  private void route(String s, Action<Some> action, boolean auth) {
     router.route(s).handler(ctx -> {
       runAction(ctx, action, auth);
     });
   }
 
-  private void get(String s, Consumer<Some> action) {
+  private void get(String s, Action<Some> action) {
     get(s, action, true);
   }
 
-  private void get(String s, Consumer<Some> action, boolean auth) {
+  private void get(String s, Action<Some> action, boolean auth) {
     router.get(s).handler(ctx -> {
       runAction(ctx, action, auth);
     });
   }
 
-  private void post(String s, Consumer<Some> action) {
+  private void post(String s, Action<Some> action) {
     post(s, action, true);
   }
 
-  private void post(String s, Consumer<Some> action, boolean auth) {
+  private void post(String s, Action<Some> action, boolean auth) {
     router.post(s).handler(ctx -> {
       runAction(ctx, action, auth);
     });
   }
 
-  private void put(String s, Consumer<Some> action) {
+  private void put(String s, Action<Some> action) {
     put(s, action, true);
   }
 
-  private void put(String s, Consumer<Some> action, boolean auth) {
+  private void put(String s, Action<Some> action, boolean auth) {
     router.put(s).handler(ctx -> {
       runAction(ctx, action, auth);
     });
   }
 
-  private void delete(String s, Consumer<Some> action) {
+  private void delete(String s, Action<Some> action) {
     delete(s, action, true);
   }
 
-  private void delete(String s, Consumer<Some> action, boolean auth) {
+  private void delete(String s, Action<Some> action, boolean auth) {
     router.delete(s).handler(ctx -> {
       runAction(ctx, action, auth);
     });

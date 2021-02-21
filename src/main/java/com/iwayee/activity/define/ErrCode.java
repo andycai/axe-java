@@ -3,6 +3,7 @@ package com.iwayee.activity.define;
 public enum ErrCode implements IErrorCode {
   SUCCESS(0, "成功"),
 
+  ERR_USER_DATA(-105, "获取用户数据失败！"),
   ERR_REGISTER(-104, "注册失败！"),
   ERR_AUTH(-103, "登录验证失败，请重新登录！"),
   ERR_OP(-102, "操作失败！"),

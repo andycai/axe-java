@@ -4,12 +4,13 @@ import com.iwayee.activity.api.comp.Member;
 import com.iwayee.activity.api.comp.Player;
 import com.iwayee.activity.api.comp.Session;
 import com.iwayee.activity.api.comp.User;
+import com.iwayee.activity.func.Action;
+import com.iwayee.activity.func.Action2;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 public class UserCache extends BaseCache {
   private Map<String, User> usersForName = new HashMap<>();
@@ -27,49 +28,49 @@ public class UserCache extends BaseCache {
     }
   }
 
-  public void create(JsonObject jo, Consumer<Long> action) {
-    dao().user().create(jo, data -> {
-      if (data > 0) {
+  public void create(JsonObject jo, Action2<Boolean, Long> action) {
+    dao().user().create(jo, (b, data) -> {
+      if (b) {
         jo.put("id", data);
         var user = jo.mapTo(User.class);
         cache(user);
       }
-      action.accept(data);
+      action.run(b, data);
     });
   }
 
   // 根据 username 获取用户数据
-  public void getUserByName(String name, Consumer<User> action) {
+  public void getUserByName(String name, Action2<Boolean, User> action) {
     if (usersForName.containsKey(name)) {
-      action.accept(usersForName.get(name));
+      action.run(true, usersForName.get(name));
       System.out.println("从缓存中获取用户数据：" + name);
     } else {
       System.out.println("从DB中获取用户数据：" + name);
-      dao().user().getUserByName(name, data -> {
+      dao().user().getUserByName(name, (b, data) -> {
         User user = null;
-        if (data != null) {
+        if (b) {
           user = data.mapTo(User.class);
           cache(user);
         }
-        action.accept(user);
+        action.run(b, user);
       });
     }
   }
 
   // 根据 id 获取用户数据
-  public void getUserById(long id, Consumer<User> action) {
+  public void getUserById(long id, Action2<Boolean, User> action) {
     if (usersForId.containsKey(id)) {
       System.out.println("从缓存中获取用户数据：" + id);
-      action.accept(usersForId.get(id));
+      action.run(true, usersForId.get(id));
     } else {
       System.out.println("从DB中获取用户数据：" + id);
-      dao().user().getUserById(id, data -> {
+      dao().user().getUserById(id, (b, data) -> {
         User user = null;
-        if (data != null) {
+        if (b) {
           user = data.mapTo(User.class);
           cache(user);
         }
-        action.accept(user);
+        action.run(b, user);
       });
     }
   }
@@ -103,9 +104,9 @@ public class UserCache extends BaseCache {
   }
 
   // 批量获取用户数据
-  public void getUsersByIds(List<Long> ids, Consumer<Map<Long, User>> action) {
+  public void getUsersByIds(List<Long> ids, Action2<Boolean, Map<Long, User>> action) {
     if (ids.size() <= 0) {
-      action.accept(null);
+      action.run(false, null);
       return;
     }
     var idsFromDB = new ArrayList<Long>(); // 需要从DB获取数据的列表
@@ -126,8 +127,8 @@ public class UserCache extends BaseCache {
     if (idsFromDB.size() > 0) {
       String idStr = joiner.join(idsFromDB);
       System.out.println("从DB中获取用户数据：" + idStr);
-      dao().user().getUsersByIds(idStr, data -> {
-        if (data != null) {
+      dao().user().getUsersByIds(idStr, (b, data) -> {
+        if (b) {
           data.forEach(value -> {
             var jo = (JsonObject) value.getValue();
             var user = jo.mapTo(User.class);
@@ -135,11 +136,11 @@ public class UserCache extends BaseCache {
             usersMap.put(user.id, user);
           });
         }
-        action.accept(usersMap);
+        action.run(b, usersMap);
       });
     } else {
       System.out.println("从缓存中获取用户数据：" + new JsonArray(ids).toString());
-      action.accept(usersMap);
+      action.run(true, usersMap);
     }
   }
 
@@ -189,14 +190,14 @@ public class UserCache extends BaseCache {
     return true;
   }
 
-  public void syncToDB(long id, Consumer<Boolean> action) {
+  public void syncToDB(long id, Action<Boolean> action) {
     if (usersForId.containsKey(id)) {
       var user = usersForId.get(id);
       dao().user().updateUserById(id, JsonObject.mapFrom(user), b -> {
-        action.accept(b);
+        action.run(b);
       });
       return;
     }
-    action.accept(false);
+    action.run(false);
   }
 }

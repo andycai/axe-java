@@ -12,8 +12,8 @@ public class GroupSystem extends BaseSystem {
   public void getGroupById(Some some) {
     var gid = some.getUInt("gid");
 
-    cache().group().getGroupById(gid, data -> {
-      if (data == null) {
+    cache().group().getGroupById(gid, (b, data) -> {
+      if (!b) {
         some.err(ErrCode.ERR_DATA);
         return;
       }
@@ -27,8 +27,8 @@ public class GroupSystem extends BaseSystem {
         return;
       }
 
-      cache().user().getUsersByIds(ids, users -> {
-        if (users == null) {
+      cache().user().getUsersByIds(ids, (isOK, users) -> {
+        if (!isOK) {
           some.err(ErrCode.ERR_DATA);
           return;
         }
@@ -44,17 +44,25 @@ public class GroupSystem extends BaseSystem {
     var page = some.jsonUInt("page");
     var num = some.jsonUInt("num");
 
-    cache().group().getGroups(page, num, data -> {
+    cache().group().getGroups(page, num, (b, data) -> {
       some.ok(data);
     });
   }
 
   public void getGroupsByUserId(Some some) {
-    cache().user().getUserById(some.userId(), user -> {
-      var ids = user.groups.getList();
-      cache().group().getGroupsByIds(ids, data -> {
-        some.ok(data);
-      });
+    cache().user().getUserById(some.userId(), (b, user) -> {
+      if (b) {
+        var ids = user.groups.getList();
+        cache().group().getGroupsByIds(ids, (isOK, data) -> {
+          if (isOK) {
+            some.ok(data);
+          } else {
+            some.err(ErrCode.ERR_GROUP_GET_DATA);
+          }
+        });
+      } else {
+        some.err(ErrCode.ERR_USER_DATA);
+      }
     });
   }
 
@@ -64,12 +72,12 @@ public class GroupSystem extends BaseSystem {
     jo.put("logo", some.jsonStr("logo"));
     jo.put("addr", some.jsonStr("addr"));
 
-    cache().group().create(jo, some.userId(), groupId -> {
-      if (groupId <= 0) {
+    cache().group().create(jo, some.userId(), (b, groupId) -> {
+      if (b) {
+        some.ok(new JsonObject().put("group_id", groupId));
+      } else {
         some.err(ErrCode.ERR_OP);
-        return;
       }
-      some.ok(new JsonObject().put("group_id", groupId));
     });
   }
 
@@ -79,8 +87,8 @@ public class GroupSystem extends BaseSystem {
     var addr = some.jsonStr("addr");
     var logo = some.jsonStr("logo");
     var notice = some.jsonStr("notice");
-    cache().group().getGroupById(gid, group -> {
-      if (group == null) {
+    cache().group().getGroupById(gid, (b, group) -> {
+      if (!b) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
       } else if (!group.isManager(some.userId())) {
         some.err(ErrCode.ERR_GROUP_NOT_MANAGER);
@@ -89,8 +97,8 @@ public class GroupSystem extends BaseSystem {
         group.addr = addr;
         group.logo = logo;
         group.notice = notice;
-        dao().group().updateGroupById(gid, JsonObject.mapFrom(group), b -> {
-          if (b) {
+        dao().group().updateGroupById(gid, JsonObject.mapFrom(group), isOK -> {
+          if (isOK) {
             some.succeed();
           } else {
             some.err(ErrCode.ERR_GROUP_UPDATE_OP);
@@ -102,14 +110,14 @@ public class GroupSystem extends BaseSystem {
 
   public void getApplyList(Some some) {
     var gid = some.getUInt("gid");
-    cache().group().getGroupById(gid, group -> {
-      if (group == null) {
+    cache().group().getGroupById(gid, (b, group) -> {
+      if (!b) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }
 
       if (group.pending.size() > 0) {
-        cache().user().getUsersByIds(group.pending.getList(), users -> {
+        cache().user().getUsersByIds(group.pending.getList(), (isOK, users) -> {
           var jr = new JsonArray();
           users.forEach((key, val) -> {
             var jo = new JsonObject();
@@ -132,8 +140,8 @@ public class GroupSystem extends BaseSystem {
     var gid = some.getUInt("gid");
     var uid = some.userId();
 
-    cache().group().getGroupById(gid, group -> {
-      if (group != null && !group.pending.contains(uid)) {
+    cache().group().getGroupById(gid, (isOK, group) -> {
+      if (isOK && !group.pending.contains(uid)) {
         group.pending.add(uid);
         // 持久化处理
         cache().group().syncToDB(group.id, b -> {
@@ -156,8 +164,8 @@ public class GroupSystem extends BaseSystem {
     var index = some.jsonInt("index");
 
     var uid = some.userId(); // 通过session获取
-    cache().group().getGroupById(gid, group -> {
-      if (group == null) {
+    cache().group().getGroupById(gid, (isOK, group) -> {
+      if (!isOK) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }
@@ -198,8 +206,8 @@ public class GroupSystem extends BaseSystem {
     var gid = some.getUInt("gid");
     var mid = some.getULong("mid");
     var uid = some.userId();
-    cache().group().getGroupById(gid, group -> {
-      if (group == null) {
+    cache().group().getGroupById(gid, (isOK, group) -> {
+      if (!isOK) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }
@@ -235,8 +243,8 @@ public class GroupSystem extends BaseSystem {
     var gid = some.getUInt("gid");
     var mid = some.getULong("mid");
     var uid = some.userId();
-    cache().group().getGroupById(gid, group -> {
-      if (group == null) {
+    cache().group().getGroupById(gid, (isOK, group) -> {
+      if (!isOK) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
         return;
       }

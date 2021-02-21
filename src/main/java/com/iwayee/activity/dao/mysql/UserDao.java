@@ -1,15 +1,17 @@
 package com.iwayee.activity.dao.mysql;
 
+import com.iwayee.activity.func.Action;
+import com.iwayee.activity.func.Action2;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mysqlclient.MySQLClient;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 
-import java.util.function.Consumer;
+import java.util.Objects;
 
 public class UserDao extends MySQLDao {
-  public void create(JsonObject user, Consumer<Long> action) {
+  public void create(JsonObject user, Action2<Boolean, Long> action) {
     var fields =
             "username,password,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups";
     var sql = String.format("INSERT INTO user (%s) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", fields);
@@ -38,11 +40,11 @@ public class UserDao extends MySQLDao {
                       } else {
                         System.out.println("Failure: " + ar.cause().getMessage());
                       }
-                      action.accept(lastInsertId);
+                      action.run(lastInsertId > 0, lastInsertId);
                     });
   }
 
-  public void getUserByName(String username, Consumer<JsonObject> action) {
+  public void getUserByName(String username, Action2<Boolean, JsonObject> action) {
     var fields =
             "id,scores,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
     var sql = String.format("SELECT %s FROM `user` WHERE username = ?", fields);
@@ -57,11 +59,11 @@ public class UserDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(jo);
+      action.run(Objects.nonNull(jo), jo);
     });
   }
 
-  public void getUserById(long id, Consumer<JsonObject> action) {
+  public void getUserById(long id, Action2<Boolean, JsonObject> action) {
     var fields =
             "id,scores,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
     var sql = String.format("SELECT %s FROM `user` WHERE id = ?", fields);
@@ -76,11 +78,11 @@ public class UserDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(jo);
+      action.run(Objects.nonNull(jo), jo);
     });
   }
 
-  public void getUsersByIds(String ids, Consumer<JsonObject> action) {
+  public void getUsersByIds(String ids, Action2<Boolean, JsonObject> action) {
     var fields = "id,scores,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups";
     var sql = String.format("SELECT %s FROM `user` WHERE id IN(%s)", fields, ids);
 
@@ -94,11 +96,11 @@ public class UserDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(jo);
+      action.run(!jo.isEmpty(), jo);
     });
   }
 
-  public void updateUserById(long id, JsonObject user, Consumer<Boolean> action) {
+  public void updateUserById(long id, JsonObject user, Action<Boolean> action) {
     var fields =
             "nick = ?, "
                     + "wx_nick = ?, "
@@ -125,7 +127,7 @@ public class UserDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(ret);
+      action.run(ret);
     });
   }
 }

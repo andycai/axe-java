@@ -2,12 +2,13 @@ package com.iwayee.activity.cache;
 
 import com.iwayee.activity.api.comp.Group;
 import com.iwayee.activity.define.GroupPosition;
+import com.iwayee.activity.func.Action;
+import com.iwayee.activity.func.Action2;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 public class GroupCache extends BaseCache {
   private Map<Integer, Group> groups = new HashMap<>();
@@ -22,7 +23,7 @@ public class GroupCache extends BaseCache {
     }
   }
 
-  public void create(JsonObject jo, long uid, Consumer<Long> action) {
+  public void create(JsonObject jo, long uid, Action2<Boolean, Long> action) {
     var group = jo.mapTo(Group.class);
     var now = new Date().getTime();
     group.level = 1;
@@ -35,35 +36,35 @@ public class GroupCache extends BaseCache {
     group.pending = new JsonArray();
     group.activities = new JsonArray();
 
-    dao().group().create(JsonObject.mapFrom(group), lastInsertId -> {
-      if (lastInsertId > 0L) {
-        group.id = lastInsertId.intValue();
+    dao().group().create(JsonObject.mapFrom(group), (b, newId) -> {
+      if (b) {
+        group.id = newId.intValue();
         cache(group);
       }
-      action.accept(lastInsertId);
+      action.run(b, newId);
     });
   }
 
-  public void getGroupById(int id, Consumer<Group> action) {
+  public void getGroupById(int id, Action2<Boolean, Group> action) {
     if (groups.containsKey(id)) {
       System.out.println("从缓存中获取群组数据：" + id);
-      action.accept(groups.get(id));
+      action.run(true, groups.get(id));
     } else {
       System.out.println("从DB中获取群组数据：" + id);
-      dao().group().getGroupByID(id, data -> {
+      dao().group().getGroupByID(id, (b, data) -> {
         Group group = null;
-        if (data != null) {
+        if (b) {
           group = data.mapTo(Group.class);
           cache(group);
         }
-        action.accept(group);
+        action.run(b, group);
       });
     }
   }
 
-  public void getGroupsByIds(List<Integer> ids, Consumer<JsonArray> action) {
+  public void getGroupsByIds(List<Integer> ids, Action2<Boolean, JsonArray> action) {
     if (ids.size() <= 0) {
-      action.accept(null);
+      action.run(false, null);
       return;
     }
     var idsForDB = new ArrayList<Integer>();
@@ -84,8 +85,8 @@ public class GroupCache extends BaseCache {
     if (idsForDB.size() > 0) {
       String idStr = joiner.join(idsForDB);
       System.out.println("从DB中获取群组数据：" + idStr);
-      dao().group().getGroupsByIds(idStr, data -> {
-        if (data != null) {
+      dao().group().getGroupsByIds(idStr, (b, data) -> {
+        if (b) {
           data.forEach(value -> {
             var jo = (JsonObject) value;
             var group = jo.mapTo(Group.class);
@@ -94,36 +95,39 @@ public class GroupCache extends BaseCache {
             jr.add(group.toJson());
           });
         }
-        action.accept(jr);
+        action.run(b, jr);
       });
     } else {
-      action.accept(jr);
+      action.run(true, jr);
     }
   }
 
-  public void getGroups(int page, int num, Consumer<JsonArray> action) {
-    dao().group().getGroups(page, num, data -> {
+  public void getGroups(int page, int num, Action2<Boolean, JsonArray> action) {
+    dao().group().getGroups(page, num, (b, data) -> {
       var jr = new JsonArray();
-      for (var g : data) {
-        var group = ((JsonObject) g).mapTo(Group.class);
-        cache(group);
-        groups.put(group.id, group);
+      if (!b) {
+        for (var g : data) {
+          var group = ((JsonObject) g).mapTo(Group.class);
+          cache(group);
+          groups.put(group.id, group);
 
-        var jo = group.toJson();
-        jr.add(jo);
+          var jo = group.toJson();
+          jr.add(jo);
+        }
       }
-      action.accept(jr);
+
+      action.run(b, jr);
     });
   }
 
-  public void syncToDB(int id, Consumer<Boolean> action) {
+  public void syncToDB(int id, Action<Boolean> action) {
     if (groups.containsKey(id)) {
       var group = groups.get(id);
       dao().group().updateGroupById(id, JsonObject.mapFrom(group), b -> {
-        action.accept(b);
+        action.run(b);
       });
       return;
     }
-    action.accept(false);
+    action.run(false);
   }
 }

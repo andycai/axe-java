@@ -15,8 +15,8 @@ public class ActivitySystem extends BaseSystem {
   public void getActivitiesByUserId(Some some) {
     var uid = some.userId();
     // 用户数据
-    cache().user().getUserById(uid, user -> {
-      if (user == null) {
+    cache().user().getUserById(uid, (isOK, user) -> {
+      if (!isOK) {
         some.err(ErrCode.ERR_DATA);
         return;
       }
@@ -25,7 +25,7 @@ public class ActivitySystem extends BaseSystem {
         return;
       }
       // 活动数据
-      cache().act().getActivitiesByIds(user.activities.getList(), acts -> {
+      cache().act().getActivitiesByIds(user.activities.getList(), (isOK2, acts) -> {
         var jr = new JsonArray();
         acts.forEach(value -> {
           jr.add(((Activity) value).toJson());
@@ -40,8 +40,8 @@ public class ActivitySystem extends BaseSystem {
     var gid = some.getUInt("gid");
 
     // 群组数据
-    cache().group().getGroupById(gid, data -> {
-      if (data == null) {
+    cache().group().getGroupById(gid, (isOK, data) -> {
+      if (!isOK) {
         some.err(ErrCode.ERR_DATA);
         return;
       }
@@ -50,7 +50,7 @@ public class ActivitySystem extends BaseSystem {
         return;
       }
       // 活动数据
-      cache().act().getActivitiesByIds(data.activities.getList(), acts -> {
+      cache().act().getActivitiesByIds(data.activities.getList(), (isOK2, acts) -> {
         var jr = new JsonArray();
         acts.forEach(value -> {
           jr.add(((Activity) value).toJson());
@@ -67,7 +67,7 @@ public class ActivitySystem extends BaseSystem {
     var page = some.jsonUInt("page");
     var num = some.jsonUInt("num");
 
-    cache().act().getActivitiesByType(type, status, page, num, acts -> {
+    cache().act().getActivitiesByType(type, status, page, num, (b, acts) -> {
       var jr = new JsonArray();
       acts.forEach(value -> {
         jr.add(((Activity) value).toJson());
@@ -80,16 +80,15 @@ public class ActivitySystem extends BaseSystem {
   public void getActivityById(Some some) {
     var aid = some.getULong("aid");
 
-    cache().act().getActivityById(aid, activity -> {
-      if (activity == null) {
+    cache().act().getActivityById(aid, (isOK, activity) -> {
+      if (!isOK) {
         some.err(ErrCode.ERR_DATA);
       } else {
-        cache().user().getUsersByIds(activity.queue.getList(), users -> {
-          if (users == null) {
-            some.err(ErrCode.ERR_DATA);
-            return;
+        cache().user().getUsersByIds(activity.queue.getList(), (isOK2, users) -> {
+          var players = new JsonObject();
+          if (isOK2) {
+            players = cache().user().toPlayer(users);
           }
-          var players = cache().user().toPlayer(users);
           var ret = JsonObject.mapFrom(activity);
           ret.put("players", players);
           some.ok(ret);
@@ -99,10 +98,10 @@ public class ActivitySystem extends BaseSystem {
   }
 
   private void doCreate(Some some, JsonObject jo, long uid, Group group) {
-    cache().act().create(jo, newId -> {
-      if (newId > 0) {
-        cache().user().getUserById(uid, user -> {
-          if (user != null) {
+    cache().act().create(jo, (isOK, newId) -> {
+      if (isOK) {
+        cache().user().getUserById(uid, (isOK2, user) -> {
+          if (isOK2) {
             // 用户活动列表更新
             user.addActivity(newId);
             cache().user().syncToDB(uid, b -> {
@@ -168,7 +167,11 @@ public class ActivitySystem extends BaseSystem {
     // 群活动必须要群管理员才能创建
     var gid = some.jsonInt("group_id");
     if (gid > 0) {
-      cache().group().getGroupById(gid, group -> {
+      cache().group().getGroupById(gid, (isOK, group) -> {
+        if (!isOK) {
+          some.err(ErrCode.ERR_GROUP_GET_DATA);
+          return;
+        }
         if (!group.isManager(uid)) {
           some.err(ErrCode.ERR_GROUP_NOT_MANAGER);
           return;
@@ -203,8 +206,8 @@ public class ActivitySystem extends BaseSystem {
     var end_at = some.jsonStr("end_at");
     var uid = some.userId();
 
-    ActivityCache.getInstance().getActivityById(aid, activity -> {
-      if (activity == null) {
+    ActivityCache.getInstance().getActivityById(aid, (isOK, activity) -> {
+      if (!isOK) {
         some.err(ErrCode.ERR_ACTIVITY_NO_DATA);
         return;
       }
@@ -221,7 +224,11 @@ public class ActivitySystem extends BaseSystem {
       // 群活动必须要群管理员才能更新
       var gid = activity.group_id;
       if (activity.inGroup()) {
-        cache().group().getGroupById(gid, group -> {
+        cache().group().getGroupById(gid, (isOK2, group) -> {
+          if (!isOK2) {
+            some.err(ErrCode.ERR_GROUP_GET_DATA);
+            return;
+          }
           if (!group.isManager(uid)) {
             some.err(ErrCode.ERR_GROUP_NOT_MANAGER);
             return;
@@ -261,15 +268,19 @@ public class ActivitySystem extends BaseSystem {
     var fee = some.jsonInt("fee"); // 单位：分
     var uid = some.userId();
 
-    cache().act().getActivityById(aid, activity -> {
-      if (activity == null) {
+    cache().act().getActivityById(aid, (isOK, activity) -> {
+      if (!isOK) {
         some.err(ErrCode.ERR_ACTIVITY_NO_DATA);
         return;
       }
 
       // 群活动
       if (activity.inGroup()) {
-        cache().group().getGroupById(activity.group_id, group -> {
+        cache().group().getGroupById(activity.group_id, (isOK2, group) -> {
+          if (!isOK2) {
+            some.err(ErrCode.ERR_GROUP_GET_DATA);
+            return;
+          }
           if (!group.isManager(uid)) {
             some.err(ErrCode.ERR_GROUP_NOT_MANAGER);
             return;
@@ -302,8 +313,8 @@ public class ActivitySystem extends BaseSystem {
     var maleCount = some.jsonInt("male_count");
     var femaleCount = some.jsonInt("female_count");
 
-    ActivityCache.getInstance().getActivityById(aid, activity -> {
-      if (activity == null) {
+    ActivityCache.getInstance().getActivityById(aid, (isOK, activity) -> {
+      if (!isOK) {
         some.err(ErrCode.ERR_ACTIVITY_NO_DATA);
         return;
       }
@@ -316,7 +327,11 @@ public class ActivitySystem extends BaseSystem {
 
       // 必须是群组成员
       if (activity.inGroup()) {
-        cache().group().getGroupById(activity.group_id, group -> {
+        cache().group().getGroupById(activity.group_id, (isOK2, group) -> {
+          if (!isOK2) {
+            some.err(ErrCode.ERR_GROUP_GET_DATA);
+            return;
+          }
           if (!group.isMember(uid)) {
             some.err(ErrCode.ERR_ACTIVITY_CANNOT_APPLY_NOT_IN_GROUP);
             return;
@@ -354,8 +369,8 @@ public class ActivitySystem extends BaseSystem {
       return;
     }
 
-    ActivityCache.getInstance().getActivityById(aid, activity -> {
-      if (activity == null) {
+    ActivityCache.getInstance().getActivityById(aid, (isOK, activity) -> {
+      if (!isOK) {
         some.err(ErrCode.ERR_ACTIVITY_NO_DATA);
         return;
       }
@@ -367,7 +382,11 @@ public class ActivitySystem extends BaseSystem {
 
       // 必须是群组成员
       if (activity.inGroup()) {
-        cache().group().getGroupById(activity.group_id, group -> {
+        cache().group().getGroupById(activity.group_id, (isOK2, group) -> {
+          if (!isOK2) {
+            some.err(ErrCode.ERR_GROUP_GET_DATA);
+            return;
+          }
           if (!group.isMember(uid)) {
             some.err(ErrCode.ERR_ACTIVITY_CANNOT_APPLY_NOT_IN_GROUP);
             return;

@@ -1,12 +1,13 @@
 package com.iwayee.activity.cache;
 
 import com.iwayee.activity.api.comp.Activity;
+import com.iwayee.activity.func.Action;
+import com.iwayee.activity.func.Action2;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import java.util.*;
-import java.util.function.Consumer;
 
 public class ActivityCache extends BaseCache {
   private Map<Long, Activity> activities = new HashMap<>();
@@ -19,38 +20,38 @@ public class ActivityCache extends BaseCache {
     activities.put(activity.id, activity);
   }
 
-  public void create(JsonObject jo, Consumer<Long> action) {
-    dao().act().create(jo, newId -> {
-      if (newId > 0L) {
+  public void create(JsonObject jo, Action2<Boolean, Long> action) {
+    dao().act().create(jo, (b, newId) -> {
+      if (b) {
         var activity = jo.mapTo(Activity.class);
         activity.id = newId;
         activities.put(activity.id, activity);
       }
-      action.accept(newId);
+      action.run(b, newId);
     });
   }
 
-  public void getActivityById(long id, Consumer<Activity> action) {
+  public void getActivityById(long id, Action2<Boolean, Activity> action) {
     if (activities.containsKey(id)) {
       System.out.println("从缓存中获取活动数据：" + id);
-      action.accept(activities.get(id));
+      action.run(true, activities.get(id));
     } else {
       System.out.println("从DB中获取活动数据：" + id);
-      dao().act().getActivityById(id, data -> {
+      dao().act().getActivityById(id, (b, data) -> {
         Activity activity = null;
-        if (data != null) {
+        if (b) {
           activity = data.mapTo(Activity.class);
           cache(activity);
         }
-        action.accept(activity);
+        action.run(b, activity);
       });
     }
   }
 
-  public void getActivitiesByType(int type, int status, int page, int num, Consumer<JsonArray> action) {
-    dao().act().getActivitiesByType(type, status, page, num, data -> {
+  public void getActivitiesByType(int type, int status, int page, int num, Action2<Boolean, JsonArray> action) {
+    dao().act().getActivitiesByType(type, status, page, num, (b, data) -> {
       var jr = new JsonArray();
-      if (!data.isEmpty()) {
+      if (b) {
         data.forEach(value -> {
           var jo = (JsonObject) value;
           var activity = jo.mapTo(Activity.class);
@@ -59,15 +60,15 @@ public class ActivityCache extends BaseCache {
           jr.add(activity);
         });
       }
-      action.accept(jr);
+      action.run(b, jr);
     });
   }
 
-  public void getActivitiesByIds(List<Long> ids, Consumer<JsonArray> action) {
+  public void getActivitiesByIds(List<Long> ids, Action2<Boolean, JsonArray> action) {
     var jr = new JsonArray();
     var idsForDB = new ArrayList<Long>();
     if (ids.isEmpty()) {
-      action.accept(jr);
+      action.run(false, jr);
       return;
     }
 
@@ -86,8 +87,8 @@ public class ActivityCache extends BaseCache {
     if (idsForDB.size() > 0) {
       var idStr = joiner.join(idsForDB);
       System.out.println("从DB中获取活动数据：" + idStr);
-      dao().act().getActivitiesByIds(idStr, data -> {
-        if (data != null) {
+      dao().act().getActivitiesByIds(idStr, (b, data) -> {
+        if (b) {
           data.forEach(value -> {
             var jo = (JsonObject) value;
             var activity = jo.mapTo(Activity.class);
@@ -96,22 +97,22 @@ public class ActivityCache extends BaseCache {
             jr.add(activity);
           });
         }
-        action.accept(jr);
+        action.run(b, jr);
       });
     } else {
       System.out.println("从缓存中获取活动数据：" + new JsonArray(ids).toString());
-      action.accept(jr);
+      action.run(true, jr);
     }
   }
 
-  public void syncToDB(long id, Consumer<Boolean> action) {
+  public void syncToDB(long id, Action<Boolean> action) {
     if (activities.containsKey(id)) {
       var activity = activities.get(id);
       dao().act().updateActivityById(id, JsonObject.mapFrom(activity), b -> {
-        action.accept(b);
+        action.run(b);
       });
       return;
     }
-    action.accept(false);
+    action.run(false);
   }
 }

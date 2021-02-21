@@ -1,5 +1,7 @@
 package com.iwayee.activity.dao.mysql;
 
+import com.iwayee.activity.func.Action;
+import com.iwayee.activity.func.Action2;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mysqlclient.MySQLClient;
@@ -7,10 +9,10 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 
-import java.util.function.Consumer;
+import java.util.Objects;
 
 public class GroupDao extends MySQLDao {
-  public void create(JsonObject group, Consumer<Long> action) {
+  public void create(JsonObject group, Action2<Boolean, Long> action) {
     var fields = "`level`,`name`,`members`,`activities`,`pending`,`notice`,`addr`,`logo`";
     var sql = String.format("INSERT INTO `group` (%s) VALUES (?,?,?,?,?,?,?,?)", fields);
 
@@ -32,11 +34,11 @@ public class GroupDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(lastInsertId);
+      action.run(lastInsertId > 0, lastInsertId);
     });
   }
 
-  public void getGroupByID(int id, Consumer<JsonObject> action) {
+  public void getGroupByID(int id, Action2<Boolean, JsonObject> action) {
     var fields = "`id`,`scores`,`level`,`name`,`logo`,`members`, `pending`,`notice`,`addr`,`activities`";
     var sql = String.format("SELECT %s FROM `group` WHERE id=?", fields);
 
@@ -52,11 +54,11 @@ public class GroupDao extends MySQLDao {
           System.out.println("Failure: " + ar.cause().getMessage());
         }
       }
-      action.accept(jo);
+      action.run(Objects.nonNull(jo), jo);
     });
   }
 
-  public void getGroups(int page, int num, Consumer<JsonArray> action) {
+  public void getGroups(int page, int num, Action2<Boolean, JsonArray> action) {
     var fields = "`id`,`scores`,`level`,`name`,`logo`,`members`, `pending`, `notice`,`addr`,`activities`";
     var sql = String.format("SELECT %s FROM `group` ORDER BY id DESC LIMIT %d,%d", fields, (page - 1) * num, num);
 
@@ -70,11 +72,11 @@ public class GroupDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(jr);
+      action.run(!jr.isEmpty(), jr);
     });
   }
 
-  public void getGroupsByIds(String ids, Consumer<JsonArray> action) {
+  public void getGroupsByIds(String ids, Action2<Boolean, JsonArray> action) {
     var fields = "`id`,`scores`,`level`,`name`,`logo`,`members`, `pending`, `notice`,`addr`,`activities`";
     var sql = String.format("SELECT %s FROM `group` WHERE `id` IN(%s)", fields, ids);
 
@@ -88,11 +90,11 @@ public class GroupDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(jr);
+      action.run(!jr.isEmpty(), jr);
     });
   }
 
-  public void updateGroupById(int id, JsonObject group, Consumer<Boolean> action) {
+  public void updateGroupById(int id, JsonObject group, Action<Boolean> action) {
     var fields = "level = ?, "
             + "name = ?, "
             + "logo = ?, "
@@ -120,7 +122,7 @@ public class GroupDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(ret);
+      action.run(ret);
     });
   }
 }

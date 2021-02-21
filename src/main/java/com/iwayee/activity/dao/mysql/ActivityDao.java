@@ -1,5 +1,7 @@
 package com.iwayee.activity.dao.mysql;
 
+import com.iwayee.activity.func.Action;
+import com.iwayee.activity.func.Action2;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mysqlclient.MySQLClient;
@@ -7,10 +9,10 @@ import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
 
-import java.util.function.Consumer;
+import java.util.Objects;
 
 public class ActivityDao extends MySQLDao {
-  public void create(JsonObject act, Consumer<Long> action) {
+  public void create(JsonObject act, Action2<Boolean, Long> action) {
     var fields = "planner,group_id,kind,type,quota,title,`remark`,status,fee_type,fee_male,fee_female,queue,queue_sex,addr,ahead,begin_at,end_at";
     var sql = String.format("INSERT INTO activity (%s) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fields);
 
@@ -41,11 +43,11 @@ public class ActivityDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(lastInsertId);
+      action.run(lastInsertId > 0, lastInsertId);
     });
   }
 
-  public void getActivitiesByType(int type, int status, int page, int num, Consumer<JsonArray> action) {
+  public void getActivitiesByType(int type, int status, int page, int num, Action2<Boolean, JsonArray> action) {
     var fields = "`id`,`planner`,`group_id`,`kind`,`type`,`quota`,`title`,`remark`,`status`,`fee_type`,`fee_male`,`fee_female`,`queue`,`queue_sex`,`addr`,`ahead`,`begin_at`,`end_at`";
     var sql = String.format("SELECT %s FROM `activity` WHERE `type` = ? AND `status` = ? ORDER BY id DESC LIMIT %d, %d", fields, (page - 1) * num, num);
 
@@ -59,11 +61,11 @@ public class ActivityDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(jr);
+      action.run(!jr.isEmpty(), jr);
     });
   }
 
-  public void getActivityById(long id, Consumer<JsonObject> action) {
+  public void getActivityById(long id, Action2<Boolean, JsonObject> action) {
     var fields = "`id`,`planner`,`group_id`,`kind`,`type`,`quota`,`title`,`remark`,`status`,`fee_type`,`fee_male`,`fee_female`,`queue`,`queue_sex`,`addr`,`ahead`,`begin_at`,`end_at`";
     var sql = String.format("SELECT %s FROM `activity` WHERE id=?", fields);
 
@@ -77,11 +79,11 @@ public class ActivityDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(jo);
+      action.run(Objects.nonNull(jo), jo);
     });
   }
 
-  public void getActivitiesByIds(String ids, Consumer<JsonArray> action) {
+  public void getActivitiesByIds(String ids, Action2<Boolean, JsonArray> action) {
     var fields = "`id`,`planner`,`group_id`,`kind`,`type`,`quota`,`title`,`remark`,`status`,`fee_type`,`fee_male`,`fee_female`,`queue`,`queue_sex`,`addr`,`ahead`,`begin_at`,`end_at`";
     var sql = String.format("SELECT %s FROM activity WHERE id IN(%s)", fields, ids);
 
@@ -95,11 +97,11 @@ public class ActivityDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(jr);
+      action.run(!jr.isEmpty(), jr);
     });
   }
 
-  public void updateActivityStatus(long id, JsonObject act, Consumer<Boolean> action) {
+  public void updateActivityStatus(long id, JsonObject act, Action<Boolean> action) {
     var fields = ""
             + "status = ?, "
             + "fee_male = ?, "
@@ -118,11 +120,11 @@ public class ActivityDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(ret);
+      action.run(ret);
     });
   }
 
-  public void updateActivityById(long id, JsonObject activity, Consumer<Boolean> action) {
+  public void updateActivityById(long id, JsonObject activity, Action<Boolean> action) {
     var fields = "quota = ?, "
             + "title = ?, "
             + "remark = ?, "
@@ -158,7 +160,7 @@ public class ActivityDao extends MySQLDao {
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
-      action.accept(ret);
+      action.run(ret);
     });
   }
 }

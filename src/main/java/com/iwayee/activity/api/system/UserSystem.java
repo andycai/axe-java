@@ -25,8 +25,8 @@ public class UserSystem extends BaseSystem {
     var wxNick = some.jsonStr("wx_nick");
     var sex = some.jsonUInt("sex");
 
-    cache().user().getUserByName(name, user -> {
-      if (user == null) {
+    cache().user().getUserByName(name, (b, user) -> {
+      if (!b) {
         var ip = some.getIP();
         var jo = new JsonObject();
         jo.put("username", name)
@@ -41,13 +41,17 @@ public class UserSystem extends BaseSystem {
                 .put("ip", ip)
                 .put("activities", "[]")
                 .put("groups", "[]")
-          ;
-        cache().user().create(jo, uid -> {
-          if (uid > 0) {
+        ;
+        cache().user().create(jo, (isOK, uid) -> {
+          if (isOK) {
             var token = jo.getString("token");
             cache().user().cacheSession(token, uid.intValue(), sex);
-            cache().user().getUserById(uid.intValue(), user1 -> {
-              some.ok(user2Json(user1));
+            cache().user().getUserById(uid.intValue(), (isOK2, user1) -> {
+              if (isOK2) {
+                some.ok(user2Json(user1));
+              } else {
+                some.err(ErrCode.ERR_AUTH);
+              }
             });
           } else {
             some.err(ErrCode.ERR_AUTH);
@@ -110,9 +114,9 @@ public class UserSystem extends BaseSystem {
 //      System.out.println(ip);
       param.put("ip", NetUtils.inet_aton(address.getHostAddress()));
 
-      cache().user().create(param, lastInsertId -> {
-        if (lastInsertId > 0) {
-          some.ok((new JsonObject()).put("user_id", lastInsertId));
+      cache().user().create(param, (b, newId) -> {
+        if (b) {
+          some.ok((new JsonObject()).put("user_id", newId));
         } else {
           some.err(ErrCode.ERR_REGISTER);
         }
@@ -131,11 +135,11 @@ public class UserSystem extends BaseSystem {
   public void getUserByName(Some some) {
     var username = some.getStr("username");
 
-    cache().user().getUserByName(username, user -> {
-      if (user == null) {
-        some.err(ErrCode.ERR_DATA);
-      } else {
+    cache().user().getUserByName(username, (b, user) -> {
+      if (b) {
         some.ok(JsonObject.mapFrom(user));
+      } else {
+        some.err(ErrCode.ERR_DATA);
       }
     });
   }
@@ -143,11 +147,11 @@ public class UserSystem extends BaseSystem {
   public void getUser(Some some) {
     var uid = some.getULong("uid");
 
-    cache().user().getUserById(uid, user -> {
-      if (user == null) {
-        some.err(ErrCode.ERR_DATA);
-      } else {
+    cache().user().getUserById(uid, (b, user) -> {
+      if (b) {
         some.ok(user2Json(user));
+      } else {
+        some.err(ErrCode.ERR_DATA);
       }
     });
   }
