@@ -244,6 +244,8 @@ public class ActivitySystem extends BaseSystem {
         some.err(ErrCode.ERR_ACTIVITY_GET_DATA);
       } else if (activity.status > ActivityStatus.DOING.ordinal()) {
         some.err(ErrCode.ERR_ACTIVITY_NON_DOING);
+      } else if (activity.hasBegun()) {
+        some.err(ErrCode.ERR_ACTIVITY_HAS_BEGUN);
       } else if (activity.overQuota(maleCount + femaleCount)) { // 候补数量不能超过10人
         some.err(ErrCode.ERR_ACTIVITY_OVER_QUOTA);
       } else if (activity.inGroup()) { // 必须是群组成员

@@ -164,6 +164,19 @@ final public class Activity {
     }
   }
 
+  public boolean hasBegun() {
+    var fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+    var now = new Date();
+    long h = 0;
+    try {
+      var begin = fmt.parse(begin_at);
+      h = DateUtils.getDiffHours(now, begin);
+    } catch (ParseException e) {
+      e.printStackTrace();
+    }
+    return h <= 0;
+  }
+
   // 能否取消报名
   public boolean canCancel() {
     var fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
