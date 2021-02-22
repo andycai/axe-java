@@ -140,6 +140,7 @@ public class MainVerticle extends AbstractVerticle {
     post("/groups/:gid/promote/:mid", group::promote);
     post("/groups/:gid/transfer/:mid", group::transfer);
     post("/groups/:gid/remove/:mid", group::remove);
+    post("/groups/:gid/quit", group::quit);
 
     put("/groups/:gid", group::updateGroup);
 

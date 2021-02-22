@@ -238,6 +238,23 @@ public class GroupSystem extends BaseSystem {
     });
   }
 
+  // 退出群组
+  public void quit(Some some) {
+    final var gid = some.getUInt("gid");
+    final var uid = some.userId();
+    groupCache().getGroupById(gid, (ok, group) -> {
+      if (!ok) {
+        some.err(ErrCode.ERR_GROUP_GET_DATA);
+      } else if (!group.isMember(uid)) {
+        some.err(ErrCode.ERR_GROUP_NON_MEMBER);
+      } else if (!group.remove(uid)) {
+        some.err(ErrCode.ERR_GROUP_REMOVE);
+      } else {
+        saveData(some, gid);
+      }
+    });
+  }
+
   // 私有方法
   public void saveData(Some some, int id) {
     groupCache().syncToDB(id, b -> {
