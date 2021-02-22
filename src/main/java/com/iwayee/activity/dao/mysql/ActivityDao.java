@@ -47,12 +47,6 @@ public class ActivityDao extends MySQLDao {
     });
   }
 
-  private JsonObject toJo(JsonObject jo) {
-    jo.put("queue", new JsonArray(jo.getString("queue")));
-    jo.put("queue_sex", new JsonArray(jo.getString("queue_sex")));
-    return jo;
-  }
-
   public void getActivitiesByType(int type, int status, int page, int num, Action2<Boolean, JsonArray> action) {
     var fields = "`id`,`planner`,`group_id`,`kind`,`type`,`quota`,`title`,`remark`,`status`,`fee_type`,`fee_male`,`fee_female`,`queue`,`queue_sex`,`addr`,`ahead`,`begin_at`,`end_at`";
     var sql = String.format("SELECT %s FROM `activity` WHERE `type` = ? AND `status` = ? ORDER BY id DESC LIMIT %d, %d", fields, (page - 1) * num, num);
@@ -168,5 +162,12 @@ public class ActivityDao extends MySQLDao {
       }
       action.run(ret);
     });
+  }
+
+  // 私有方法
+  private JsonObject toJo(JsonObject jo) {
+    jo.put("queue", new JsonArray(jo.getString("queue")));
+    jo.put("queue_sex", new JsonArray(jo.getString("queue_sex")));
+    return jo;
   }
 }

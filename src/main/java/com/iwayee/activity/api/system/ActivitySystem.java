@@ -7,8 +7,11 @@ import com.iwayee.activity.define.ActivityFeeType;
 import com.iwayee.activity.define.ActivityStatus;
 import com.iwayee.activity.define.ErrCode;
 import com.iwayee.activity.hub.Some;
+import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+
+import java.util.Objects;
 
 // 根据用户获取活动
 public class ActivitySystem extends BaseSystem {
@@ -99,42 +102,6 @@ public class ActivitySystem extends BaseSystem {
     });
   }
 
-  private void doCreate(Some some, JsonObject jo, long uid, Group group) {
-    actCache().create(jo, (ok, newId) -> {
-      if (ok) {
-        userCache().getUserById(uid, (ok2, user) -> {
-          if (ok2) {
-            // 用户活动列表更新
-            user.addActivity(newId);
-            userCache().syncToDB(uid, b -> {
-              if (b) {
-                // 群组活动列表更新
-                if (group != null) {
-                  group.addActivity(newId);
-                  cache().group().syncToDB(group.id, b2 -> {
-                    if (b2) {
-                      some.ok((new JsonObject()).put("activity_id", newId));
-                      return;
-                    }
-                    some.err(ErrCode.ERR_ACTIVITY_CREATE);
-                  });
-                  return;
-                }
-                some.ok((new JsonObject()).put("activity_id", newId));
-                return;
-              }
-              some.err(ErrCode.ERR_ACTIVITY_CREATE);
-            });
-            return;
-          }
-          some.err(ErrCode.ERR_ACTIVITY_CREATE);
-        });
-      } else {
-        some.err(ErrCode.ERR_ACTIVITY_CREATE);
-      }
-    });
-  }
-
   // 创建获得活动
   public void create(Some some) {
     var uid = some.userId(); // 通过 session 获取
@@ -183,16 +150,6 @@ public class ActivitySystem extends BaseSystem {
       return;
     }
     doCreate(some, jo, uid, null);
-  }
-
-  private void doUpdate(Some some, Activity activity) {
-    actCache().syncToDB(activity.id, b -> {
-      if (!b) {
-        some.err(ErrCode.ERR_ACTIVITY_UPDATE);
-        return;
-      }
-      some.succeed();
-    });
   }
 
   public void update(Some some) {
@@ -244,22 +201,6 @@ public class ActivitySystem extends BaseSystem {
     });
   }
 
-  private void doEnd(Some some, int fee, long aid, Activity act) {
-    // 结算或者终止
-    act.settle(fee);
-    var jo = new JsonObject();
-    jo.put("status", act.status)
-            .put("fee_male", act.fee_male)
-            .put("fee_female", act.fee_female);
-    dao().act().updateActivityStatus(aid, jo, ok -> {
-      if (ok) {
-        some.succeed();
-      } else {
-        some.err(ErrCode.ERR_OP);
-      }
-    });
-  }
-
   // 结算活动
   public void end(Some some) {
     final var aid = some.getULong("aid");
@@ -289,17 +230,6 @@ public class ActivitySystem extends BaseSystem {
     });
   }
 
-  private void enqueue(Some some, long uid, Activity activity, int maleCount, int femaleCount) {
-    activity.enqueue(uid, maleCount, femaleCount);
-    actCache().syncToDB(activity.id, ok -> {
-      if (ok) {
-        some.succeed();
-      } else {
-        some.err(ErrCode.ERR_ACTIVITY_UPDATE);
-      }
-    });
-  }
-
   /**
    * 报名，支持带多人报名
    */
@@ -312,6 +242,8 @@ public class ActivitySystem extends BaseSystem {
     ActivityCache.getInstance().getActivityById(aid, (ok, activity) -> {
       if (!ok) {
         some.err(ErrCode.ERR_ACTIVITY_GET_DATA);
+      } else if (activity.status > ActivityStatus.DOING.ordinal()) {
+        some.err(ErrCode.ERR_ACTIVITY_NON_DOING);
       } else if (activity.overQuota(maleCount + femaleCount)) { // 候补数量不能超过10人
         some.err(ErrCode.ERR_ACTIVITY_OVER_QUOTA);
       } else if (activity.inGroup()) { // 必须是群组成员
@@ -328,31 +260,6 @@ public class ActivitySystem extends BaseSystem {
         enqueue(some, uid, activity, maleCount, femaleCount);
       }
     });
-  }
-
-  private void dequeue(Some some, long uid, Activity activity, int maleCount, int femaleCount) {
-    activity.dequeue(uid, maleCount, femaleCount);
-    actCache().syncToDB(activity.id, ok -> {
-      if (ok) {
-        some.succeed();
-      } else {
-        some.err(ErrCode.ERR_ACTIVITY_UPDATE);
-      }
-    });
-  }
-
-  private void dequeue(Some some, Activity activity, int index) {
-    if (activity.dequeue(index)) {
-      actCache().syncToDB(activity.id, ok -> {
-        if (ok) {
-          some.succeed();
-        } else {
-          some.err(ErrCode.ERR_ACTIVITY_UPDATE);
-        }
-      });
-    } else {
-      some.err(ErrCode.ERR_ACTIVITY_REMOVE);
-    }
   }
 
   /**
@@ -372,6 +279,10 @@ public class ActivitySystem extends BaseSystem {
     ActivityCache.getInstance().getActivityById(aid, (ok, activity) -> {
       if (!ok) {
         some.err(ErrCode.ERR_ACTIVITY_GET_DATA);
+      } else if (activity.status > ActivityStatus.DOING.ordinal()) {
+        some.err(ErrCode.ERR_ACTIVITY_NON_DOING);
+      } else if (!activity.canCancel()) {
+        some.err(ErrCode.ERR_ACTIVITY_CANNOT_CANCEL);
       } else if (activity.notEnough(uid, (maleCount + femaleCount))) { // 取消报名数量不正确
         some.err(ErrCode.ERR_ACTIVITY_NOT_ENOUGH);
       } else if (activity.inGroup()) {
@@ -393,7 +304,7 @@ public class ActivitySystem extends BaseSystem {
   // 移除报名队列中的人
   public void remove(Some some) {
     final var aid = some.getULong("aid");
-    final var index = some.getUInt("index");
+    final var index = some.getInt("index");
     final var uid = some.userId();
 
     ActivityCache.getInstance().getActivityById(aid, (ok, activity) -> {
@@ -419,4 +330,98 @@ public class ActivitySystem extends BaseSystem {
       }
     });
   }
+
+  // 私有方法
+  private void dequeue(Some some, long uid, Activity activity, int maleCount, int femaleCount) {
+    activity.dequeue(uid, maleCount, femaleCount);
+    actCache().syncToDB(activity.id, ok -> {
+      if (ok) {
+        if (!activity.inQueue(uid)) { // 全部报名都取消了
+          Singleton.instance(UserSystem.class).cancelActivity(some, activity.id, uid);
+        } else some.succeed();
+      } else {
+        some.err(ErrCode.ERR_ACTIVITY_UPDATE);
+      }
+    });
+  }
+
+  private void dequeue(Some some, Activity activity, int index) {
+    var uid = activity.getIdFromQueue(index);
+    if (activity.dequeue(index)) {
+      actCache().syncToDB(activity.id, ok -> {
+        if (ok) {
+          if (!activity.inQueue(uid)) { // 全部报名都取消了
+            Singleton.instance(UserSystem.class).cancelActivity(some, activity.id, uid);
+          } else some.succeed();
+        } else {
+          some.err(ErrCode.ERR_ACTIVITY_UPDATE);
+        }
+      });
+    } else {
+      some.err(ErrCode.ERR_ACTIVITY_REMOVE);
+    }
+  }
+
+  private void enqueue(Some some, long uid, Activity activity, int maleCount, int femaleCount) {
+    activity.enqueue(uid, maleCount, femaleCount);
+    actCache().syncToDB(activity.id, ok -> {
+      if (ok) {
+        Singleton.instance(UserSystem.class).applyActivity(some, activity.id, uid);
+      } else {
+        some.err(ErrCode.ERR_ACTIVITY_UPDATE);
+      }
+    });
+  }
+
+  private void doEnd(Some some, int fee, long aid, Activity act) {
+    // 结算或者终止
+    act.settle(fee);
+    var jo = new JsonObject();
+    jo.put("status", act.status)
+            .put("fee_male", act.fee_male)
+            .put("fee_female", act.fee_female);
+    dao().act().updateActivityStatus(aid, jo, ok -> {
+      if (ok) {
+        some.succeed();
+      } else {
+        some.err(ErrCode.ERR_OP);
+      }
+    });
+  }
+
+  private void doUpdate(Some some, Activity activity) {
+    actCache().syncToDB(activity.id, b -> {
+      if (!b) {
+        some.err(ErrCode.ERR_ACTIVITY_UPDATE);
+        return;
+      }
+      some.succeed();
+    });
+  }
+
+  private void doCreate(Some some, JsonObject jo, long uid, Group group) {
+    actCache().create(jo, (ok, newId) -> {
+      if (ok) {
+        userCache().getUserById(uid, (ok2, user) -> {
+          if (ok2) {
+            // 用户活动列表更新
+            user.addActivity(newId);
+            userCache().syncToDB(uid, b -> {
+              if (b) {
+                // 群组活动列表更新
+                if (!Objects.isNull(group)) {
+                  group.addActivity(newId);
+                  cache().group().syncToDB(group.id, b2 -> {
+                    if (b2) some.ok((new JsonObject()).put("activity_id", newId));
+                    else some.err(ErrCode.ERR_ACTIVITY_CREATE);
+                  });
+                } else some.ok((new JsonObject()).put("activity_id", newId));
+              } else some.err(ErrCode.ERR_ACTIVITY_CREATE);
+            });
+          } else some.err(ErrCode.ERR_ACTIVITY_CREATE);
+        });
+      } else some.err(ErrCode.ERR_ACTIVITY_CREATE);
+    });
+  }
+
 }

@@ -24,13 +24,6 @@ public class UserCache extends BaseCache {
     return Singleton.instance(UserCache.class);
   }
 
-  private void cache(User user) {
-    if (user != null) {
-      usersForId.put(user.id, user);
-      usersForName.put(user.username, user);
-    }
-  }
-
   public void create(JsonObject jo, Action2<Boolean, Long> action) {
     dao().user().create(jo, (b, data) -> {
       if (b) {
@@ -201,5 +194,13 @@ public class UserCache extends BaseCache {
       return;
     }
     action.run(false);
+  }
+
+  // 私有方法
+  private void cache(User user) {
+    if (user != null) {
+      usersForId.put(user.id, user);
+      usersForName.put(user.username, user);
+    }
   }
 }

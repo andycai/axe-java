@@ -77,12 +77,6 @@ public class GroupDao extends MySQLDao {
     });
   }
 
-  private JsonObject toJo(JsonObject jo) {
-    jo.put("pending", new JsonArray(jo.getString("pending")));
-    jo.put("activities", new JsonArray(jo.getString("activities")));
-    return jo;
-  }
-
   public void getGroupsByIds(String ids, Action2<Boolean, JsonArray> action) {
     var fields = "`id`,`scores`,`level`,`name`,`logo`,`members`, `pending`, `notice`,`addr`,`activities`";
     var sql = String.format("SELECT %s FROM `group` WHERE `id` IN(%s)", fields, ids);
@@ -132,5 +126,12 @@ public class GroupDao extends MySQLDao {
       }
       action.run(ret);
     });
+  }
+
+  // 私有方法
+  private JsonObject toJo(JsonObject jo) {
+    jo.put("pending", new JsonArray(jo.getString("pending")));
+    jo.put("activities", new JsonArray(jo.getString("activities")));
+    return jo;
   }
 }

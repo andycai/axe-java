@@ -20,12 +20,6 @@ public class GroupCache extends BaseCache {
     return Singleton.instance(GroupCache.class);
   }
 
-  private void cache(Group group) {
-    if (group != null) {
-      groups.put(group.id, group);
-    }
-  }
-
   public void create(JsonObject jo, long uid, Action2<Boolean, Long> action) {
     var group = jo.mapTo(Group.class);
     var now = new Date().getTime();
@@ -132,5 +126,12 @@ public class GroupCache extends BaseCache {
       return;
     }
     action.run(false);
+  }
+
+  // 私有方法
+  private void cache(Group group) {
+    if (group != null) {
+      groups.put(group.id, group);
+    }
   }
 }

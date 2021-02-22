@@ -2,6 +2,7 @@ package com.iwayee.activity.api.system;
 
 import com.iwayee.activity.define.ErrCode;
 import com.iwayee.activity.hub.Some;
+import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -174,7 +175,14 @@ public class GroupSystem extends BaseSystem {
             group.members.add(jo);
           }
           group.pending.remove(tid);
-          saveData(some, gid);
+          groupCache().syncToDB(gid, b -> {
+            if (b) {
+              // 加入群组，更新用户群组列表
+              if (pass) Singleton.instance(UserSystem.class).enterGroup(some, gid, tid);
+            } else {
+              some.err(ErrCode.ERR_GROUP_UPDATE_OP);
+            }
+          });
         } else {
           some.err(ErrCode.ERR_GROUP_APPROVE);
         }
@@ -233,7 +241,13 @@ public class GroupSystem extends BaseSystem {
       } else if (!group.remove(mid)) {
         some.err(ErrCode.ERR_GROUP_REMOVE);
       } else {
-        saveData(some, gid);
+        groupCache().syncToDB(gid, b -> {
+          if (b) {
+            Singleton.instance(UserSystem.class).quitGroup(some, gid, mid);
+          } else {
+            some.err(ErrCode.ERR_GROUP_UPDATE_OP);
+          }
+        });
       }
     });
   }
@@ -250,13 +264,19 @@ public class GroupSystem extends BaseSystem {
       } else if (!group.remove(uid)) {
         some.err(ErrCode.ERR_GROUP_REMOVE);
       } else {
-        saveData(some, gid);
+        groupCache().syncToDB(gid, b -> {
+          if (b) {
+            Singleton.instance(UserSystem.class).quitGroup(some, gid, uid);
+          } else {
+            some.err(ErrCode.ERR_GROUP_UPDATE_OP);
+          }
+        });
       }
     });
   }
 
   // 私有方法
-  public void saveData(Some some, int id) {
+  private void saveData(Some some, int id) {
     groupCache().syncToDB(id, b -> {
       if (b) {
         some.succeed();

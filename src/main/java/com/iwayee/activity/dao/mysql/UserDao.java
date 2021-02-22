@@ -45,12 +45,6 @@ public class UserDao extends MySQLDao {
                     });
   }
 
-  private JsonObject toJo(JsonObject jo) {
-    jo.put("groups", new JsonArray(jo.getString("groups")));
-    jo.put("activities", new JsonArray(jo.getString("activities")));
-    return jo;
-  }
-
   public void getUserByName(String username, Action2<Boolean, JsonObject> action) {
     var fields =
             "id,scores,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
@@ -136,5 +130,12 @@ public class UserDao extends MySQLDao {
       }
       action.run(ret);
     });
+  }
+
+  // 私有方法
+  private JsonObject toJo(JsonObject jo) {
+    jo.put("groups", new JsonArray(jo.getString("groups")));
+    jo.put("activities", new JsonArray(jo.getString("activities")));
+    return jo;
   }
 }

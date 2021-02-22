@@ -3,9 +3,13 @@ package com.iwayee.activity.api.comp;
 import com.iwayee.activity.define.ActivityFeeType;
 import com.iwayee.activity.define.ActivityStatus;
 import com.iwayee.activity.define.SexType;
+import com.iwayee.activity.utils.DateUtils;
 import io.vertx.core.json.JsonObject;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 final public class Activity {
@@ -50,36 +54,6 @@ final public class Activity {
     return uid == planner;
   }
 
-  private int totalCount() { // 最终确定报名人数
-    var c = 0;
-    var size = queue.size();
-    if (quota >= size) c = size;
-    else c = quota;
-    return c;
-  }
-
-  private int maleCount() {
-    var c = 0;
-    var count = totalCount();
-    for (int i = 0; i < count; i++) {
-      if (queue_sex.get(i) == SexType.MALE.ordinal()) {
-        c += 1;
-      }
-    }
-    return c;
-  }
-
-  private int femaleCount() {
-    var c = 0;
-    var count = totalCount();
-    for (int i = 0; i < count; i++) {
-      if (queue_sex.get(i) == SexType.FEMALE.ordinal()) {
-        c += 1;
-      }
-    }
-    return c;
-  }
-
   public void settle(int fee) {
     status = (fee > 0) ? ActivityStatus.DONE.ordinal() : ActivityStatus.END.ordinal();
     if (fee_type == ActivityFeeType.FEE_TYPE_AFTER_AA.ordinal()) {
@@ -102,11 +76,22 @@ final public class Activity {
   public boolean notEnough(long uid, int total) {
     var count = 0;
     for (var val : queue) {
-      if ((long) val == uid) {
+      if (val == uid) {
         count += 1;
       }
     }
     return total > count;
+  }
+
+  public boolean inQueue(long uid) {
+    return queue.contains(uid);
+  }
+
+  public long getIdFromQueue(int index) {
+    if (index < 0 || index >= queue.size()) {
+      return 0;
+    }
+    return queue.get(index);
   }
 
   // 长度不一致时，修正使其一致
@@ -174,8 +159,53 @@ final public class Activity {
     }
     var total = posArr.size();
     for (int i = 0; i < total; i++) {
-      queue.remove((int)posArr.get(i));
-      queue_sex.remove((int)posArr.get(i));
+      queue.remove((int) posArr.get(i));
+      queue_sex.remove((int) posArr.get(i));
     }
+  }
+
+  // 能否取消报名
+  public boolean canCancel() {
+    var fmt = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+    var now = new Date();
+    long h = 0;
+    try {
+      var begin = fmt.parse(begin_at);
+      h = DateUtils.getDiffHours(now, begin);
+    } catch (ParseException e) {
+      e.printStackTrace();
+    }
+    return h >= ahead;
+  }
+
+  // 私有方法
+  private int totalCount() { // 最终确定报名人数
+    var c = 0;
+    var size = queue.size();
+    if (quota >= size) c = size;
+    else c = quota;
+    return c;
+  }
+
+  private int maleCount() {
+    var c = 0;
+    var count = totalCount();
+    for (int i = 0; i < count; i++) {
+      if (queue_sex.get(i) == SexType.MALE.ordinal()) {
+        c += 1;
+      }
+    }
+    return c;
+  }
+
+  private int femaleCount() {
+    var c = 0;
+    var count = totalCount();
+    for (int i = 0; i < count; i++) {
+      if (queue_sex.get(i) == SexType.FEMALE.ordinal()) {
+        c += 1;
+      }
+    }
+    return c;
   }
 }

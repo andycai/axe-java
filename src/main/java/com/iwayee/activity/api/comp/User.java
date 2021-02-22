@@ -20,15 +20,39 @@ final public class User {
   public List<Integer> groups;
   public List<Long> activities;
 
-  public void addActivity(long aid) {
-    if (!activities.contains(aid)) {
-      activities.add(aid);
-    }
+  public boolean containsActivity(long aid) {
+    return activities.contains(aid);
   }
 
-  public void addGroup(int gid) {
+  public boolean addActivity(long aid) {
+    if (!activities.contains(aid)) {
+      activities.add(aid);
+      return true;
+    }
+    return false;
+  }
+
+  public boolean removeActivity(long aid) {
+    if (activities.contains(aid)) {
+      activities.remove(aid);
+      return true;
+    }
+    return false;
+  }
+
+  public boolean addGroup(int gid) {
     if (!groups.contains(gid)) {
       groups.add(gid);
+      return true;
     }
+    return false;
+  }
+
+  public boolean removeGroup(int gid) {
+    if (groups.contains(gid)) {
+      groups.remove((Object) gid);
+      return true;
+    }
+    return false;
   }
 }

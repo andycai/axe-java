@@ -19,10 +19,6 @@ public class ActivityCache extends BaseCache {
     return Singleton.instance(ActivityCache.class);
   }
 
-  private void cache(Activity activity) {
-    activities.put(activity.id, activity);
-  }
-
   public void create(JsonObject jo, Action2<Boolean, Long> action) {
     dao().act().create(jo, (b, newId) -> {
       if (b) {
@@ -117,5 +113,10 @@ public class ActivityCache extends BaseCache {
       return;
     }
     action.run(false);
+  }
+
+  // 私有方法
+  private void cache(Activity activity) {
+    activities.put(activity.id, activity);
   }
 }

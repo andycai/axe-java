@@ -13,13 +13,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 public class UserSystem extends BaseSystem {
-  private JsonObject user2Json(User user) {
-    var jo = JsonObject.mapFrom(user);
-    jo.remove("password");
-
-    return jo;
-  }
-
   public void login(Some some) {
     var name = some.jsonStr("username");
     var wxNick = some.jsonStr("wx_nick");
@@ -147,12 +140,61 @@ public class UserSystem extends BaseSystem {
   public void getUser(Some some) {
     var uid = some.getULong("uid");
 
-    userCache().getUserById(uid, (b, user) -> {
-      if (b) {
+    userCache().getUserById(uid, (ok, user) -> {
+      if (ok) {
         some.ok(user2Json(user));
-      } else {
-        some.err(ErrCode.ERR_DATA);
-      }
+      } else some.err(ErrCode.ERR_USER_DATA);
     });
+  }
+
+  public void enterGroup(Some some, int gid, long uid) {
+    userCache().getUserById(uid, (ok, user) -> {
+      if (ok) {
+        if (user.addGroup(gid)) saveData(some, uid);
+        else some.succeed();
+      } else some.err(ErrCode.ERR_USER_DATA);
+    });
+  }
+
+  public void quitGroup(Some some, int gid, long uid) {
+    userCache().getUserById(uid, (ok, user) -> {
+      if (ok) {
+        if (user.removeGroup(gid)) saveData(some, uid);
+        else some.succeed();
+      } else some.err(ErrCode.ERR_USER_DATA);
+    });
+  }
+
+  public void applyActivity(Some some, long aid, long uid) {
+    userCache().getUserById(uid, (ok, user) -> {
+      if (ok) {
+        if (user.addActivity(aid)) saveData(some, uid);
+        else some.succeed();
+      } else some.err(ErrCode.ERR_USER_DATA);
+    });
+  }
+
+  public void cancelActivity(Some some, long aid, long uid) {
+    userCache().getUserById(uid, (ok, user) -> {
+      if (ok) {
+        if (user.removeActivity(aid)) saveData(some, uid);
+        else some.succeed();
+      } else some.err(ErrCode.ERR_USER_DATA);
+    });
+  }
+
+  // 私有方法
+  private void saveData(Some some, long uid) {
+    userCache().syncToDB(uid, ok -> {
+      if (ok) some.succeed();
+      else some.err(ErrCode.ERR_USER_UPDATE_DATA);
+    });
+  }
+
+  private JsonObject user2Json(User user) {
+    var jo = JsonObject.mapFrom(user);
+    jo.remove("password");
+
+    return jo;
   }
 }
