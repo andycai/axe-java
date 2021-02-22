@@ -1,6 +1,6 @@
 package com.iwayee.activity.api.comp;
 
-import io.vertx.core.json.JsonArray;
+import java.util.List;
 
 final public class User {
   public long id;
@@ -17,8 +17,8 @@ final public class User {
   public String email;
   public String create_at;
 
-  public JsonArray groups;
-  public JsonArray activities;
+  public List<Integer> groups;
+  public List<Long> activities;
 
   public void addActivity(long aid) {
     if (!activities.contains(aid)) {

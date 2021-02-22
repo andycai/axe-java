@@ -3,10 +3,10 @@ package com.iwayee.activity.api.comp;
 import com.iwayee.activity.define.ActivityFeeType;
 import com.iwayee.activity.define.ActivityStatus;
 import com.iwayee.activity.define.SexType;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import java.util.ArrayList;
+import java.util.List;
 
 final public class Activity {
   public static final int OVERFLOW = 10;
@@ -26,8 +26,8 @@ final public class Activity {
   public String addr;
   public String begin_at;
   public String end_at;
-  public JsonArray queue; // 报名队列
-  public JsonArray queue_sex; // 报名队列中的性别
+  public List<Long> queue; // 报名队列
+  public List<Integer> queue_sex; // 报名队列中的性别
 
   public JsonObject toJson() {
     var jo = new JsonObject();
@@ -46,6 +46,10 @@ final public class Activity {
     return group_id > 0;
   }
 
+  public boolean isPlanner(long uid) {
+    return uid == planner;
+  }
+
   private int totalCount() { // 最终确定报名人数
     var c = 0;
     var size = queue.size();
@@ -58,7 +62,7 @@ final public class Activity {
     var c = 0;
     var count = totalCount();
     for (int i = 0; i < count; i++) {
-      if (queue_sex.getInteger(i) == SexType.MALE.ordinal()) {
+      if (queue_sex.get(i) == SexType.MALE.ordinal()) {
         c += 1;
       }
     }
@@ -69,7 +73,7 @@ final public class Activity {
     var c = 0;
     var count = totalCount();
     for (int i = 0; i < count; i++) {
-      if (queue_sex.getInteger(i) == SexType.FEMALE.ordinal()) {
+      if (queue_sex.get(i) == SexType.FEMALE.ordinal()) {
         c += 1;
       }
     }
@@ -134,6 +138,16 @@ final public class Activity {
     }
   }
 
+  public boolean dequeue(int index) {
+    fixQueue();
+    if (index < 0 || index >= queue.size()) {
+      return false;
+    }
+    queue.remove(index);
+    queue_sex.remove(index);
+    return true;
+  }
+
   public void dequeue(long uid, int maleCount, int femaleCount) {
     fixQueue();
     var mCount = 0;
@@ -141,15 +155,15 @@ final public class Activity {
     var size = queue.size();
     var posArr = new ArrayList<Integer>();
     for (int i = size - 1; i >= 0; i--) {
-      var id = queue.getLong(i);
+      var id = queue.get(i);
       if (id == uid) {
         // 男
-        if (queue_sex.getInteger(i) == SexType.MALE.ordinal() && maleCount > mCount) {
+        if (queue_sex.get(i) == SexType.MALE.ordinal() && maleCount > mCount) {
           mCount += 1;
           posArr.add(i);
         }
         // 女
-        if (queue_sex.getInteger(i) == SexType.FEMALE.ordinal() && femaleCount > fCount) {
+        if (queue_sex.get(i) == SexType.FEMALE.ordinal() && femaleCount > fCount) {
           fCount += 1;
           posArr.add(i);
         }

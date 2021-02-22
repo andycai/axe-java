@@ -139,6 +139,7 @@ public class MainVerticle extends AbstractVerticle {
     post("/groups/:gid/approve", group::approve);
     post("/groups/:gid/promote/:mid", group::promote);
     post("/groups/:gid/transfer/:mid", group::transfer);
+    post("/groups/:gid/remove/:mid", group::remove);
 
     put("/groups/:gid", group::updateGroup);
 
@@ -150,6 +151,7 @@ public class MainVerticle extends AbstractVerticle {
     post("/activities/:aid/end", act::end);
     post("/activities/:aid/apply", act::apply);
     post("/activities/:aid/cancel", act::cancel);
+    post("/activities/:aid/remove/:index", act::remove);
 
     put("/activities/:aid", act::update);
 

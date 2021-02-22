@@ -10,6 +10,9 @@ import io.vertx.core.json.JsonObject;
 
 import java.util.*;
 
+/**
+ * TODO：缓存需要增加数量限制（LRU）
+ */
 public class GroupCache extends BaseCache {
   private Map<Integer, Group> groups = new HashMap<>();
 
@@ -33,8 +36,8 @@ public class GroupCache extends BaseCache {
     member.put("pos", GroupPosition.POS_OWNER.ordinal());
     member.put("at", now);
     group.members = new JsonArray().add(member);
-    group.pending = new JsonArray();
-    group.activities = new JsonArray();
+    group.pending = new ArrayList<>();
+    group.activities = new ArrayList<>();
 
     dao().group().create(JsonObject.mapFrom(group), (b, newId) -> {
       if (b) {

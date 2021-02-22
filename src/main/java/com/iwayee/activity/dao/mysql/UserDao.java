@@ -2,6 +2,7 @@ package com.iwayee.activity.dao.mysql;
 
 import com.iwayee.activity.func.Action;
 import com.iwayee.activity.func.Action2;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.mysqlclient.MySQLClient;
 import io.vertx.sqlclient.Row;
@@ -44,6 +45,12 @@ public class UserDao extends MySQLDao {
                     });
   }
 
+  private JsonObject toJo(JsonObject jo) {
+    jo.put("groups", new JsonArray(jo.getString("groups")));
+    jo.put("activities", new JsonArray(jo.getString("activities")));
+    return jo;
+  }
+
   public void getUserByName(String username, Action2<Boolean, JsonObject> action) {
     var fields =
             "id,scores,username,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups,create_at";
@@ -54,7 +61,7 @@ public class UserDao extends MySQLDao {
       if (ar.succeeded()) {
         RowSet<Row> rows = ar.result();
         for (Row row : rows) {
-          jo = row.toJson();
+          jo = toJo(row.toJson());
         }
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
@@ -73,7 +80,7 @@ public class UserDao extends MySQLDao {
       if (ar.succeeded()) {
         RowSet<Row> rows = ar.result();
         for (Row row : rows) {
-          jo = row.toJson();
+          jo = toJo(row.toJson());
         }
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
@@ -91,7 +98,7 @@ public class UserDao extends MySQLDao {
       if (ar.succeeded()) {
         RowSet<Row> rows = ar.result();
         for (Row row : rows) {
-          jo.put(row.getInteger("id").toString(), row.toJson());
+          jo.put(row.getInteger("id").toString(), toJo(row.toJson()));
         }
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());

@@ -12,6 +12,9 @@ import io.vertx.core.json.JsonObject;
 
 import java.util.*;
 
+/**
+ * TODO：缓存需要增加数量限制（LRU）
+ */
 public class UserCache extends BaseCache {
   private Map<String, User> usersForName = new HashMap<>();
   private Map<Long, User> usersForId = new HashMap<>();
@@ -112,8 +115,7 @@ public class UserCache extends BaseCache {
     var idsFromDB = new ArrayList<Long>(); // 需要从DB获取数据的列表
     var usersMap = new HashMap<Long, User>();
 
-    for (var item : ids) {
-      long id = item.longValue();
+    for (var id : ids) {
       if (!usersMap.containsKey(id)) {
         if (usersForId.containsKey(id)) {
           usersMap.put(id, usersForId.get(id));
@@ -122,18 +124,6 @@ public class UserCache extends BaseCache {
         }
       }
     }
-
-//    Iterator<Long> it = ids.iterator();
-//    while (it.hasNext()) {
-//      long id = it.next();
-//      if (!usersMap.containsKey(id)) {
-//        if (usersForId.containsKey(id)) {
-//          usersMap.put(id, usersForId.get(id));
-//        } else {
-//          idsFromDB.add(id);
-//        }
-//      }
-//    }
 
     // 需要从DB获取
     if (idsFromDB.size() > 0) {

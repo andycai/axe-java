@@ -12,8 +12,8 @@ public class GroupSystem extends BaseSystem {
   public void getGroupById(Some some) {
     var gid = some.getUInt("gid");
 
-    cache().group().getGroupById(gid, (b, data) -> {
-      if (!b) {
+    groupCache().getGroupById(gid, (ok, data) -> {
+      if (!ok) {
         some.err(ErrCode.ERR_DATA);
         return;
       }
@@ -27,12 +27,12 @@ public class GroupSystem extends BaseSystem {
         return;
       }
 
-      cache().user().getUsersByIds(ids, (isOK, users) -> {
-        if (!isOK) {
+      userCache().getUsersByIds(ids, (ok2, users) -> {
+        if (!ok2) {
           some.err(ErrCode.ERR_DATA);
           return;
         }
-        var members = cache().user().toMember(users, data.members);
+        var members = userCache().toMember(users, data.members);
         var jo = JsonObject.mapFrom(data);
         jo.put("members", members);
         some.ok(jo);
@@ -44,17 +44,17 @@ public class GroupSystem extends BaseSystem {
     var page = some.jsonUInt("page");
     var num = some.jsonUInt("num");
 
-    cache().group().getGroups(page, num, (b, data) -> {
+    groupCache().getGroups(page, num, (b, data) -> {
       some.ok(data);
     });
   }
 
   public void getGroupsByUserId(Some some) {
-    cache().user().getUserById(some.userId(), (b, user) -> {
-      if (b) {
-        var ids = user.groups.getList();
-        cache().group().getGroupsByIds(ids, (isOK, data) -> {
-          if (isOK) {
+    userCache().getUserById(some.userId(), (ok, user) -> {
+      if (ok) {
+        var ids = user.groups;
+        groupCache().getGroupsByIds(ids, (ok2, data) -> {
+          if (ok2) {
             some.ok(data);
           } else {
             some.err(ErrCode.ERR_GROUP_GET_DATA);
@@ -72,8 +72,8 @@ public class GroupSystem extends BaseSystem {
     jo.put("logo", some.jsonStr("logo"));
     jo.put("addr", some.jsonStr("addr"));
 
-    cache().group().create(jo, some.userId(), (b, groupId) -> {
-      if (b) {
+    groupCache().create(jo, some.userId(), (ok, groupId) -> {
+      if (ok) {
         some.ok(new JsonObject().put("group_id", groupId));
       } else {
         some.err(ErrCode.ERR_OP);
@@ -87,18 +87,18 @@ public class GroupSystem extends BaseSystem {
     var addr = some.jsonStr("addr");
     var logo = some.jsonStr("logo");
     var notice = some.jsonStr("notice");
-    cache().group().getGroupById(gid, (b, group) -> {
-      if (!b) {
+    groupCache().getGroupById(gid, (ok, group) -> {
+      if (!ok) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
       } else if (!group.isManager(some.userId())) {
-        some.err(ErrCode.ERR_GROUP_NOT_MANAGER);
+        some.err(ErrCode.ERR_GROUP_NON_MANAGER);
       } else {
         group.name = name; // TODO:修改名字有次数限制
         group.addr = addr;
         group.logo = logo;
         group.notice = notice;
-        dao().group().updateGroupById(gid, JsonObject.mapFrom(group), isOK -> {
-          if (isOK) {
+        dao().group().updateGroupById(gid, JsonObject.mapFrom(group), ok2 -> {
+          if (ok2) {
             some.succeed();
           } else {
             some.err(ErrCode.ERR_GROUP_UPDATE_OP);
@@ -109,163 +109,143 @@ public class GroupSystem extends BaseSystem {
   }
 
   public void getApplyList(Some some) {
-    var gid = some.getUInt("gid");
-    cache().group().getGroupById(gid, (b, group) -> {
-      if (!b) {
+    final var gid = some.getUInt("gid");
+    groupCache().getGroupById(gid, (ok, group) -> {
+      if (!ok) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
-        return;
-      }
-
-      if (group.pending.size() > 0) {
-        cache().user().getUsersByIds(some.toLongList(group.pending), (isOK, users) -> {
+      } else if (group.pending.size() <= 0) {
+        some.ok(new JsonArray());
+      } else {
+        userCache().getUsersByIds(group.pending, (ok2, users) -> {
           var jr = new JsonArray();
           users.forEach((key, val) -> {
             var jo = new JsonObject();
             jo.put("id", val.id);
             jo.put("nick", val.nick);
             jo.put("wx_nick", val.wx_nick);
-            var index = group.pending.getList().indexOf(val.id);
+            var index = group.pending.indexOf(val.id);
             jo.put("index", index);
             jr.add(jo);
           });
           some.ok(jr);
         });
-        return;
       }
-      some.ok(new JsonArray());
     });
   }
 
   public void apply(Some some) {
-    var gid = some.getUInt("gid");
-    var uid = some.userId();
+    final var gid = some.getUInt("gid");
+    final var uid = some.userId();
 
-    cache().group().getGroupById(gid, (isOK, group) -> {
-      if (isOK && !group.pending.contains(uid)) {
-        group.pending.add(uid);
-        // 持久化处理
-        cache().group().syncToDB(group.id, b -> {
-          if (b) {
-            some.succeed();
-          } else {
-            some.err(ErrCode.ERR_GROUP_UPDATE_OP);
-          }
-        });
-      } else {
+    groupCache().getGroupById(gid, (ok, group) -> {
+      if (!ok) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
+      } else if (group.pending.contains(uid)) {
+        some.succeed();
+      } else {
+        group.pending.add(uid);
+        saveData(some, gid);
       }
     });
   }
 
   // 审批申请
   public void approve(Some some) {
-    var gid = some.getUInt("gid");
-    var pass = some.jsonBool("pass");
-    var index = some.jsonInt("index");
-
-    var uid = some.userId(); // 通过session获取
-    cache().group().getGroupById(gid, (isOK, group) -> {
-      if (!isOK) {
+    final var gid = some.getUInt("gid");
+    final var pass = some.jsonBool("pass");
+    final var index = some.jsonInt("index");
+    final var uid = some.userId(); // 通过session获取
+    groupCache().getGroupById(gid, (ok, group) -> {
+      if (!ok) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
-        return;
-      }
-
-      if (!group.isManager(uid) || index >= group.pending.size()) {
+      } else if (!group.isManager(uid)) {
+        some.err(ErrCode.ERR_GROUP_NON_MANAGER);
+      } else if (group.notInPending(index)) {
         some.err(ErrCode.ERR_GROUP_APPROVE);
-        return;
-      }
-
-      var tid = group.pending.getInteger(index);
-      if (group.notIn(tid)) {
-        if (pass) {
-          var jo = new JsonObject();
-          jo.put("id", tid);
-          jo.put("scores", 0);
-          jo.put("pos", 1);
-          jo.put("at", new Date().getTime());
-          group.members.add(jo);
-        }
-        group.pending.remove(tid);
-
-        // 持久化处理
-        cache().group().syncToDB(group.id, b -> {
-          if (b) {
-            some.succeed();
-          } else {
-            some.err(ErrCode.ERR_GROUP_UPDATE_OP);
-          }
-        });
       } else {
-        some.err(ErrCode.ERR_GROUP_APPROVE);
+        var tid = group.pending.get(index);
+        if (group.notIn(tid)) {
+          if (pass) {
+            var jo = new JsonObject();
+            jo.put("id", tid);
+            jo.put("scores", 0);
+            jo.put("pos", 1);
+            jo.put("at", new Date().getTime());
+            group.members.add(jo);
+          }
+          group.pending.remove(tid);
+          saveData(some, gid);
+        } else {
+          some.err(ErrCode.ERR_GROUP_APPROVE);
+        }
       }
     });
   }
 
   // 提升管理员
   public void promote(Some some) {
-    var gid = some.getUInt("gid");
-    var mid = some.getULong("mid");
-    var uid = some.userId();
-    cache().group().getGroupById(gid, (isOK, group) -> {
-      if (!isOK) {
+    final var gid = some.getUInt("gid");
+    final var mid = some.getULong("mid");
+    final var uid = some.userId();
+    groupCache().getGroupById(gid, (ok, group) -> {
+      if (!ok) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
-        return;
-      }
-
-      if (!group.isOwner(uid)) {
-        some.err(ErrCode.ERR_GROUP_PROMOTE);
-        return;
-      }
-
-      // 不能超过3个副群主
-      if (group.managerCount() >= 3) {
+      } else if (!group.isOwner(uid)) {
+        some.err(ErrCode.ERR_GROUP_NON_OWNER);
+      } else if (group.managerCount() >= 3) { // 不能超过3个副群主
         some.err(ErrCode.ERR_GROUP_MANAGER_LIMIT);
-        return;
-      }
-
-      if (!group.promote(mid)) {
+      } else if (!group.promote(mid)) {
         some.err(ErrCode.ERR_GROUP_PROMOTE);
-        return;
+      } else {
+        saveData(some, gid);
       }
-
-      cache().group().syncToDB(group.id, b -> {
-        if (b) {
-          some.succeed();
-        } else {
-          some.err(ErrCode.ERR_GROUP_UPDATE_OP);
-        }
-      });
     });
   }
 
   // 转让群主
   public void transfer(Some some) {
-    var gid = some.getUInt("gid");
-    var mid = some.getULong("mid");
-    var uid = some.userId();
-    cache().group().getGroupById(gid, (isOK, group) -> {
-      if (!isOK) {
+    final var gid = some.getUInt("gid");
+    final var mid = some.getULong("mid");
+    final var uid = some.userId();
+    groupCache().getGroupById(gid, (ok, group) -> {
+      if (!ok) {
         some.err(ErrCode.ERR_GROUP_GET_DATA);
-        return;
-      }
-
-      if (!group.isOwner(uid)) {
+      } else if (!group.isOwner(uid)) {
+        some.err(ErrCode.ERR_GROUP_NON_OWNER);
+      } else if (!group.transfer(uid, mid)) {
         some.err(ErrCode.ERR_GROUP_TRANSFER);
-        return;
+      } else {
+        saveData(some, gid);
       }
+    });
+  }
 
-      if (!group.transfer(uid, mid)) {
-        some.err(ErrCode.ERR_GROUP_TRANSFER);
-        return;
+  // 移除群成员
+  public void remove(Some some) {
+    final var gid = some.getUInt("gid");
+    final var mid = some.getULong("mid");
+    final var uid = some.userId();
+    groupCache().getGroupById(gid, (ok, group) -> {
+      if (!ok) {
+        some.err(ErrCode.ERR_GROUP_GET_DATA);
+      } else if (!group.isManager(uid)) {
+        some.err(ErrCode.ERR_GROUP_NON_MANAGER);
+      } else if (!group.remove(mid)) {
+        some.err(ErrCode.ERR_GROUP_REMOVE);
+      } else {
+        saveData(some, gid);
       }
+    });
+  }
 
-      cache().group().syncToDB(group.id, b -> {
-        if (b) {
-          some.succeed();
-        } else {
-          some.err(ErrCode.ERR_GROUP_UPDATE_OP);
-        }
-      });
+  // 私有方法
+  public void saveData(Some some, int id) {
+    groupCache().syncToDB(id, b -> {
+      if (b) {
+        some.succeed();
+      } else {
+        some.err(ErrCode.ERR_GROUP_UPDATE_OP);
+      }
     });
   }
 }

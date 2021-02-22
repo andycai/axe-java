@@ -48,7 +48,7 @@ public class GroupDao extends MySQLDao {
         RowSet<Row> rows = ar.result();
         if (rows.size() > 0) {
           for (Row row : rows) {
-            jo = row.toJson();
+            jo = toJo(row.toJson());
           }
         } else {
           System.out.println("Failure: " + ar.cause().getMessage());
@@ -67,13 +67,20 @@ public class GroupDao extends MySQLDao {
       if (ar.succeeded()) {
         RowSet<Row> rows = ar.result();
         for (Row row : rows) {
-          jr.add(row.toJson());
+          var jo = toJo(row.toJson());
+          jr.add(jo);
         }
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());
       }
       action.run(!jr.isEmpty(), jr);
     });
+  }
+
+  private JsonObject toJo(JsonObject jo) {
+    jo.put("pending", new JsonArray(jo.getString("pending")));
+    jo.put("activities", new JsonArray(jo.getString("activities")));
+    return jo;
   }
 
   public void getGroupsByIds(String ids, Action2<Boolean, JsonArray> action) {
@@ -85,7 +92,8 @@ public class GroupDao extends MySQLDao {
       if (ar.succeeded()) {
         RowSet<Row> rows = ar.result();
         for (Row row : rows) {
-          jr.add(row.toJson());
+          var jo = toJo(row.toJson());
+          jr.add(jo);
         }
       } else {
         System.out.println("Failure: " + ar.cause().getMessage());

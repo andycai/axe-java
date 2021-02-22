@@ -4,6 +4,8 @@ import com.iwayee.activity.define.GroupPosition;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
+import java.util.List;
+
 final public class Group {
   public int id;
   public int level;
@@ -12,9 +14,9 @@ final public class Group {
   public String logo;
   public String notice;
   public String addr;
-  public JsonArray activities;
+  public List<Long> activities;
   public JsonArray members;
-  public JsonArray pending; // 申请入群列表
+  public List<Long> pending; // 申请入群列表
 
   public JsonObject toJson() {
     var jo = new JsonObject();
@@ -24,6 +26,10 @@ final public class Group {
     jo.put("name", name);
     jo.put("count", members.size());
     return jo;
+  }
+
+  public boolean notInPending(int index) {
+    return index < 0 || index >= pending.size();
   }
 
   // 是否群成员
@@ -103,6 +109,19 @@ final public class Group {
       }
     }
     return b;
+  }
+
+  public boolean remove(long mid) {
+    var it = members.iterator();
+    while (it.hasNext()) {
+      var jo = (JsonObject) it.next();
+      // 外部自行判断权限
+      if (jo.getLong("id") == mid) {
+        it.remove();
+        return true;
+      }
+    }
+    return false;
   }
 
   public boolean notIn(long uid) {

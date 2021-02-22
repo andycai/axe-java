@@ -12,11 +12,12 @@ import io.vertx.core.json.JsonObject;
 
 // 根据用户获取活动
 public class ActivitySystem extends BaseSystem {
+  // TODO: 需要增加 page 和 num
   public void getActivitiesByUserId(Some some) {
-    var uid = some.userId();
+    final var uid = some.userId();
     // 用户数据
-    cache().user().getUserById(uid, (isOK, user) -> {
-      if (!isOK) {
+    userCache().getUserById(uid, (ok, user) -> {
+      if (!ok) {
         some.err(ErrCode.ERR_DATA);
         return;
       }
@@ -25,7 +26,7 @@ public class ActivitySystem extends BaseSystem {
         return;
       }
       // 活动数据
-      cache().act().getActivitiesByIds(some.toLongList(user.activities), (isOK2, acts) -> {
+      actCache().getActivitiesByIds(user.activities, (ok2, acts) -> {
         var jr = new JsonArray();
         acts.forEach(value -> {
           jr.add(((Activity) value).toJson());
@@ -36,12 +37,13 @@ public class ActivitySystem extends BaseSystem {
   }
 
   // 根据群组获取活动
+  // TODO: 需要增加 page 和 num
   public void getActivitiesByGroupId(Some some) {
-    var gid = some.getUInt("gid");
+    final var gid = some.getUInt("gid");
 
     // 群组数据
-    cache().group().getGroupById(gid, (isOK, data) -> {
-      if (!isOK) {
+    cache().group().getGroupById(gid, (ok, data) -> {
+      if (!ok) {
         some.err(ErrCode.ERR_DATA);
         return;
       }
@@ -50,7 +52,7 @@ public class ActivitySystem extends BaseSystem {
         return;
       }
       // 活动数据
-      cache().act().getActivitiesByIds(some.toLongList(data.activities), (isOK2, acts) -> {
+      actCache().getActivitiesByIds(data.activities, (ok2, acts) -> {
         var jr = new JsonArray();
         acts.forEach(value -> {
           jr.add(((Activity) value).toJson());
@@ -62,12 +64,12 @@ public class ActivitySystem extends BaseSystem {
 
   // 根据类型获取活动
   public void getActivities(Some some) {
-    var type = some.jsonUInt("type");
-    var status = some.jsonUInt("status");
-    var page = some.jsonUInt("page");
-    var num = some.jsonUInt("num");
+    final var type = some.jsonUInt("type");
+    final var status = some.jsonUInt("status");
+    final var page = some.jsonUInt("page");
+    final var num = some.jsonUInt("num");
 
-    cache().act().getActivitiesByType(type, status, page, num, (b, acts) -> {
+    actCache().getActivitiesByType(type, status, page, num, (b, acts) -> {
       var jr = new JsonArray();
       acts.forEach(value -> {
         jr.add(((Activity) value).toJson());
@@ -78,16 +80,16 @@ public class ActivitySystem extends BaseSystem {
 
   // 获得单个活动数据
   public void getActivityById(Some some) {
-    var aid = some.getULong("aid");
+    final var aid = some.getULong("aid");
 
-    cache().act().getActivityById(aid, (isOK, activity) -> {
-      if (!isOK) {
+    actCache().getActivityById(aid, (ok, activity) -> {
+      if (!ok) {
         some.err(ErrCode.ERR_DATA);
       } else {
-        cache().user().getUsersByIds(some.toLongList(activity.queue), (isOK2, users) -> {
+        userCache().getUsersByIds(activity.queue, (ok2, users) -> {
           var players = new JsonObject();
-          if (isOK2) {
-            players = cache().user().toPlayer(users);
+          if (ok2) {
+            players = userCache().toPlayer(users);
           }
           var ret = JsonObject.mapFrom(activity);
           ret.put("players", players);
@@ -98,13 +100,13 @@ public class ActivitySystem extends BaseSystem {
   }
 
   private void doCreate(Some some, JsonObject jo, long uid, Group group) {
-    cache().act().create(jo, (isOK, newId) -> {
-      if (isOK) {
-        cache().user().getUserById(uid, (isOK2, user) -> {
-          if (isOK2) {
+    actCache().create(jo, (ok, newId) -> {
+      if (ok) {
+        userCache().getUserById(uid, (ok2, user) -> {
+          if (ok2) {
             // 用户活动列表更新
             user.addActivity(newId);
-            cache().user().syncToDB(uid, b -> {
+            userCache().syncToDB(uid, b -> {
               if (b) {
                 // 群组活动列表更新
                 if (group != null) {
@@ -167,13 +169,13 @@ public class ActivitySystem extends BaseSystem {
     // 群活动必须要群管理员才能创建
     var gid = some.jsonInt("group_id");
     if (gid > 0) {
-      cache().group().getGroupById(gid, (isOK, group) -> {
-        if (!isOK) {
+      cache().group().getGroupById(gid, (ok, group) -> {
+        if (!ok) {
           some.err(ErrCode.ERR_GROUP_GET_DATA);
           return;
         }
         if (!group.isManager(uid)) {
-          some.err(ErrCode.ERR_GROUP_NOT_MANAGER);
+          some.err(ErrCode.ERR_GROUP_NON_MANAGER);
           return;
         }
         doCreate(some, jo, uid, group);
@@ -184,7 +186,7 @@ public class ActivitySystem extends BaseSystem {
   }
 
   private void doUpdate(Some some, Activity activity) {
-    cache().act().syncToDB(activity.id, b -> {
+    actCache().syncToDB(activity.id, b -> {
       if (!b) {
         some.err(ErrCode.ERR_ACTIVITY_UPDATE);
         return;
@@ -194,21 +196,21 @@ public class ActivitySystem extends BaseSystem {
   }
 
   public void update(Some some) {
-    var aid = some.getULong("aid");
-    var quota = some.jsonUInt("quota");
-    var ahead = some.jsonUInt("ahead");
-    var fee_male = some.jsonInt("fee_male");
-    var fee_female = some.jsonInt("fee_female");
-    var title = some.jsonStr("title");
-    var remark = some.jsonStr("remark");
-    var addr = some.jsonStr("addr");
-    var begin_at = some.jsonStr("begin_at");
-    var end_at = some.jsonStr("end_at");
-    var uid = some.userId();
+    final var aid = some.getULong("aid");
+    final var quota = some.jsonUInt("quota");
+    final var ahead = some.jsonUInt("ahead");
+    final var fee_male = some.jsonInt("fee_male");
+    final var fee_female = some.jsonInt("fee_female");
+    final var title = some.jsonStr("title");
+    final var remark = some.jsonStr("remark");
+    final var addr = some.jsonStr("addr");
+    final var begin_at = some.jsonStr("begin_at");
+    final var end_at = some.jsonStr("end_at");
+    final var uid = some.userId();
 
-    ActivityCache.getInstance().getActivityById(aid, (isOK, activity) -> {
-      if (!isOK) {
-        some.err(ErrCode.ERR_ACTIVITY_NO_DATA);
+    ActivityCache.getInstance().getActivityById(aid, (ok, activity) -> {
+      if (!ok) {
+        some.err(ErrCode.ERR_ACTIVITY_GET_DATA);
         return;
       }
       activity.quota = quota;
@@ -221,28 +223,24 @@ public class ActivitySystem extends BaseSystem {
       activity.begin_at = begin_at;
       activity.end_at = end_at;
 
-      // 群活动必须要群管理员才能更新
-      var gid = activity.group_id;
-      if (activity.inGroup()) {
-        cache().group().getGroupById(gid, (isOK2, group) -> {
-          if (!isOK2) {
+      final var gid = activity.group_id;
+      if (activity.inGroup()) { // 群组活动
+        cache().group().getGroupById(gid, (ok2, group) -> {
+          if (!ok2) {
             some.err(ErrCode.ERR_GROUP_GET_DATA);
-            return;
+          } else if (!group.isManager(uid)) {
+            some.err(ErrCode.ERR_GROUP_NON_MANAGER);
+          } else {
+            doUpdate(some, activity);
           }
-          if (!group.isManager(uid)) {
-            some.err(ErrCode.ERR_GROUP_NOT_MANAGER);
-            return;
-          }
-          doUpdate(some, activity);
         });
-        return;
+      } else { // 个人发起活动
+        if (activity.isPlanner(uid)) {
+          doUpdate(some, activity);
+        } else {
+          some.err(ErrCode.ERR_ACTIVITY_NON_PLANNER);
+        }
       }
-
-      if (activity.planner != uid) {
-        some.err(ErrCode.ERR_ACTIVITY_NOT_PLANNER);
-        return;
-      }
-      doUpdate(some, activity);
     });
   }
 
@@ -253,54 +251,52 @@ public class ActivitySystem extends BaseSystem {
     jo.put("status", act.status)
             .put("fee_male", act.fee_male)
             .put("fee_female", act.fee_female);
-    dao().act().updateActivityStatus(aid, jo, b -> {
-      if (!b) {
+    dao().act().updateActivityStatus(aid, jo, ok -> {
+      if (ok) {
+        some.succeed();
+      } else {
         some.err(ErrCode.ERR_OP);
-        return;
       }
-      some.succeed();
     });
   }
 
   // 结算活动
   public void end(Some some) {
-    var aid = some.getULong("aid");
-    var fee = some.jsonInt("fee"); // 单位：分
-    var uid = some.userId();
+    final var aid = some.getULong("aid");
+    final var fee = some.jsonInt("fee"); // 单位：分
+    final var uid = some.userId();
 
-    cache().act().getActivityById(aid, (isOK, activity) -> {
-      if (!isOK) {
-        some.err(ErrCode.ERR_ACTIVITY_NO_DATA);
-        return;
-      }
-
-      // 群活动
-      if (activity.inGroup()) {
-        cache().group().getGroupById(activity.group_id, (isOK2, group) -> {
-          if (!isOK2) {
+    actCache().getActivityById(aid, (ok, activity) -> {
+      if (!ok) {
+        some.err(ErrCode.ERR_ACTIVITY_GET_DATA);
+      } else if (activity.inGroup()) {
+        cache().group().getGroupById(activity.group_id, (ok2, group) -> {
+          if (!ok2) {
             some.err(ErrCode.ERR_GROUP_GET_DATA);
-            return;
+          } else if (!group.isManager(uid)) {
+            some.err(ErrCode.ERR_GROUP_NON_MANAGER);
+          } else {
+            doEnd(some, fee, aid, activity);
           }
-          if (!group.isManager(uid)) {
-            some.err(ErrCode.ERR_GROUP_NOT_MANAGER);
-            return;
-          }
-          doEnd(some, fee, aid, activity);
         });
-        return;
+      } else {
+        if (activity.isPlanner(uid)) {
+          doEnd(some, fee, aid, activity);
+        } else {
+          some.err(ErrCode.ERR_ACTIVITY_NON_PLANNER);
+        }
       }
-      doEnd(some, fee, aid, activity);
     });
   }
 
   private void enqueue(Some some, long uid, Activity activity, int maleCount, int femaleCount) {
     activity.enqueue(uid, maleCount, femaleCount);
-    cache().act().syncToDB(activity.id, b -> {
-      if (!b) {
+    actCache().syncToDB(activity.id, ok -> {
+      if (ok) {
+        some.succeed();
+      } else {
         some.err(ErrCode.ERR_ACTIVITY_UPDATE);
-        return;
       }
-      some.succeed();
     });
   }
 
@@ -308,94 +304,119 @@ public class ActivitySystem extends BaseSystem {
    * 报名，支持带多人报名
    */
   public void apply(Some some) {
-    var aid = some.getULong("aid");
-    var uid = some.userId();
-    var maleCount = some.jsonInt("male_count");
-    var femaleCount = some.jsonInt("female_count");
+    final var aid = some.getULong("aid");
+    final var uid = some.userId();
+    final var maleCount = some.jsonInt("male_count");
+    final var femaleCount = some.jsonInt("female_count");
 
-    ActivityCache.getInstance().getActivityById(aid, (isOK, activity) -> {
-      if (!isOK) {
-        some.err(ErrCode.ERR_ACTIVITY_NO_DATA);
-        return;
-      }
-
-      // 候补数量不能超过10人
-      if (activity.overQuota(maleCount + femaleCount)) {
+    ActivityCache.getInstance().getActivityById(aid, (ok, activity) -> {
+      if (!ok) {
+        some.err(ErrCode.ERR_ACTIVITY_GET_DATA);
+      } else if (activity.overQuota(maleCount + femaleCount)) { // 候补数量不能超过10人
         some.err(ErrCode.ERR_ACTIVITY_OVER_QUOTA);
-        return;
-      }
-
-      // 必须是群组成员
-      if (activity.inGroup()) {
-        cache().group().getGroupById(activity.group_id, (isOK2, group) -> {
-          if (!isOK2) {
+      } else if (activity.inGroup()) { // 必须是群组成员
+        cache().group().getGroupById(activity.group_id, (ok2, group) -> {
+          if (!ok2) {
             some.err(ErrCode.ERR_GROUP_GET_DATA);
-            return;
+          } else if (!group.isMember(uid)) {
+            some.err(ErrCode.ERR_GROUP_NON_MEMBER);
+          } else {
+            enqueue(some, uid, activity, maleCount, femaleCount);
           }
-          if (!group.isMember(uid)) {
-            some.err(ErrCode.ERR_ACTIVITY_CANNOT_APPLY_NOT_IN_GROUP);
-            return;
-          }
-          enqueue(some, uid, activity, maleCount, femaleCount);
         });
-        return;
+      } else {
+        enqueue(some, uid, activity, maleCount, femaleCount);
       }
-      enqueue(some, uid, activity, maleCount, femaleCount);
     });
   }
 
   private void dequeue(Some some, long uid, Activity activity, int maleCount, int femaleCount) {
     activity.dequeue(uid, maleCount, femaleCount);
-    cache().act().syncToDB(activity.id, b -> {
-      if (!b) {
+    actCache().syncToDB(activity.id, ok -> {
+      if (ok) {
+        some.succeed();
+      } else {
         some.err(ErrCode.ERR_ACTIVITY_UPDATE);
-        return;
       }
-      some.succeed();
     });
+  }
+
+  private void dequeue(Some some, Activity activity, int index) {
+    if (activity.dequeue(index)) {
+      actCache().syncToDB(activity.id, ok -> {
+        if (ok) {
+          some.succeed();
+        } else {
+          some.err(ErrCode.ERR_ACTIVITY_UPDATE);
+        }
+      });
+    } else {
+      some.err(ErrCode.ERR_ACTIVITY_REMOVE);
+    }
   }
 
   /**
    * 取消报名，支持取消自带的多人
    */
   public void cancel(Some some) {
-    var aid = some.getULong("aid");
-    var uid = some.userId();
-    var maleCount = some.jsonInt("male_count");
-    var femaleCount = some.jsonInt("female_count");
+    final var aid = some.getULong("aid");
+    final var uid = some.userId();
+    final var maleCount = some.jsonInt("male_count");
+    final var femaleCount = some.jsonInt("female_count");
 
     if (maleCount + femaleCount <= 0) {
       some.err(ErrCode.ERR_PARAM);
       return;
     }
 
-    ActivityCache.getInstance().getActivityById(aid, (isOK, activity) -> {
-      if (!isOK) {
-        some.err(ErrCode.ERR_ACTIVITY_NO_DATA);
-        return;
-      }
-
-      if (activity.notEnough(uid, (maleCount + femaleCount))) {
+    ActivityCache.getInstance().getActivityById(aid, (ok, activity) -> {
+      if (!ok) {
+        some.err(ErrCode.ERR_ACTIVITY_GET_DATA);
+      } else if (activity.notEnough(uid, (maleCount + femaleCount))) { // 取消报名数量不正确
         some.err(ErrCode.ERR_ACTIVITY_NOT_ENOUGH);
-        return;
-      }
-
-      // 必须是群组成员
-      if (activity.inGroup()) {
-        cache().group().getGroupById(activity.group_id, (isOK2, group) -> {
-          if (!isOK2) {
+      } else if (activity.inGroup()) {
+        cache().group().getGroupById(activity.group_id, (ok2, group) -> {
+          if (!ok2) {
             some.err(ErrCode.ERR_GROUP_GET_DATA);
-            return;
+          } else if (!group.isMember(uid)) {
+            some.err(ErrCode.ERR_GROUP_NON_MEMBER);
+          } else {
+            dequeue(some, uid, activity, maleCount, femaleCount);
           }
-          if (!group.isMember(uid)) {
-            some.err(ErrCode.ERR_ACTIVITY_CANNOT_APPLY_NOT_IN_GROUP);
-            return;
-          }
-          dequeue(some, uid, activity, maleCount, femaleCount);
         });
-        return;
+      } else {
+        dequeue(some, uid, activity, maleCount, femaleCount);
       }
-      dequeue(some, uid, activity, maleCount, femaleCount);
+    });
+  }
+
+  // 移除报名队列中的人
+  public void remove(Some some) {
+    final var aid = some.getULong("aid");
+    final var index = some.getUInt("index");
+    final var uid = some.userId();
+
+    ActivityCache.getInstance().getActivityById(aid, (ok, activity) -> {
+      if (!ok) {
+        some.err(ErrCode.ERR_ACTIVITY_GET_DATA);
+      } else if (activity.inGroup()) {
+        cache().group().getGroupById(activity.group_id, (ok2, group) -> {
+          if (!ok2) {
+            some.err(ErrCode.ERR_GROUP_GET_DATA);
+          } else if (!group.isManager(uid)) { // 管理员才能移除
+            some.err(ErrCode.ERR_GROUP_NON_MANAGER);
+          } else {
+            dequeue(some, activity, index);
+          }
+        });
+      } else {
+        // 发起人才能移除
+        if (activity.isPlanner(uid)) {
+          dequeue(some, activity, index);
+        } else {
+          some.err(ErrCode.ERR_ACTIVITY_NON_PLANNER);
+        }
+      }
     });
   }
 }

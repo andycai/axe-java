@@ -9,6 +9,9 @@ import io.vertx.core.json.JsonObject;
 
 import java.util.*;
 
+/**
+ * TODO：缓存需要增加数量限制（LRU）
+ */
 public class ActivityCache extends BaseCache {
   private Map<Long, Activity> activities = new HashMap<>();
 
