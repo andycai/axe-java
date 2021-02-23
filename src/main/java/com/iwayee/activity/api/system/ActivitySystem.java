@@ -7,6 +7,7 @@ import com.iwayee.activity.define.ActivityFeeType;
 import com.iwayee.activity.define.ActivityStatus;
 import com.iwayee.activity.define.ErrCode;
 import com.iwayee.activity.hub.Some;
+import com.iwayee.activity.utils.CollectionUtils;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -15,22 +16,30 @@ import java.util.Objects;
 
 // 根据用户获取活动
 public class ActivitySystem extends BaseSystem {
-  // TODO: 需要增加 page 和 num
   public void getActivitiesByUserId(Some some) {
     final var uid = some.userId();
+    final var page = some.jsonUInt("page");
+    final var num = some.jsonUInt("num");
+
     // 用户数据
     userCache().getUserById(uid, (ok, user) -> {
       if (!ok) {
         some.err(ErrCode.ERR_DATA);
         return;
       }
-      if (user.activities.size() <= 0) {
+      if (user.activities.isEmpty()) {
         some.ok(new JsonArray());
         return;
       }
+      var jr = new JsonArray();
+      var ids = CollectionUtils.subLastList(user.activities, page, num);
+      if (Objects.isNull(ids) || ids.size() <= 0) {
+        some.ok(jr);
+        return;
+      }
+
       // 活动数据
-      actCache().getActivitiesByIds(user.activities, (ok2, acts) -> {
-        var jr = new JsonArray();
+      actCache().getActivitiesByIds(ids, (ok2, acts) -> {
         acts.forEach(value -> {
           jr.add(((Activity) value).toJson());
         });
@@ -40,23 +49,30 @@ public class ActivitySystem extends BaseSystem {
   }
 
   // 根据群组获取活动
-  // TODO: 需要增加 page 和 num
   public void getActivitiesByGroupId(Some some) {
     final var gid = some.getUInt("gid");
+    final var page = some.jsonUInt("page");
+    final var num = some.jsonUInt("num");
 
     // 群组数据
-    cache().group().getGroupById(gid, (ok, data) -> {
+    cache().group().getGroupById(gid, (ok, group) -> {
       if (!ok) {
         some.err(ErrCode.ERR_DATA);
         return;
       }
-      if (data.activities.size() <= 0) {
+      if (group.activities.isEmpty()) {
         some.ok(new JsonArray());
         return;
       }
+      var jr = new JsonArray();
+      var ids = CollectionUtils.subLastList(group.activities, page, num);
+      if (Objects.isNull(ids) || ids.size() <= 0) {
+        some.ok(jr);
+        return;
+      }
+
       // 活动数据
-      actCache().getActivitiesByIds(data.activities, (ok2, acts) -> {
-        var jr = new JsonArray();
+      actCache().getActivitiesByIds(ids, (ok2, acts) -> {
         acts.forEach(value -> {
           jr.add(((Activity) value).toJson());
         });

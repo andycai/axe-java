@@ -2,12 +2,14 @@ package com.iwayee.activity.api.system;
 
 import com.iwayee.activity.define.ErrCode;
 import com.iwayee.activity.hub.Some;
+import com.iwayee.activity.utils.CollectionUtils;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Objects;
 
 public class GroupSystem extends BaseSystem {
   public void getGroupById(Some some) {
@@ -42,8 +44,8 @@ public class GroupSystem extends BaseSystem {
   }
 
   public void getGroups(Some some) {
-    var page = some.jsonUInt("page");
-    var num = some.jsonUInt("num");
+    final var page = some.jsonUInt("page");
+    final var num = some.jsonUInt("num");
 
     groupCache().getGroups(page, num, (b, data) -> {
       some.ok(data);
@@ -51,14 +53,23 @@ public class GroupSystem extends BaseSystem {
   }
 
   public void getGroupsByUserId(Some some) {
+    final var page = some.jsonUInt("page");
+    final var num = some.jsonUInt("num");
+
     userCache().getUserById(some.userId(), (ok, user) -> {
       if (ok) {
-        var ids = user.groups;
+        var jr = new JsonArray();
+        var ids = CollectionUtils.subLastList(user.groups, page, num);
+        if (Objects.isNull(ids) || ids.size() <= 0) {
+          some.ok(jr);
+          return;
+        }
+
         groupCache().getGroupsByIds(ids, (ok2, data) -> {
           if (ok2) {
             some.ok(data);
           } else {
-            some.err(ErrCode.ERR_GROUP_GET_DATA);
+            some.ok(jr);
           }
         });
       } else {
