@@ -5,6 +5,10 @@
 
 使用 java 开发
 
+## JDK
+
+OpenJDK 11
+
 ## 数据库
 
  - MySQL
