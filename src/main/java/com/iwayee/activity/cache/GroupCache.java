@@ -7,6 +7,8 @@ import com.iwayee.activity.func.Action2;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -15,6 +17,7 @@ import java.util.*;
  */
 public class GroupCache extends BaseCache {
   private Map<Integer, Group> groups = new HashMap<>();
+  private static final Logger LOG = LoggerFactory.getLogger(GroupCache.class);
 
   public static GroupCache getInstance() {
     return Singleton.instance(GroupCache.class);
@@ -44,10 +47,10 @@ public class GroupCache extends BaseCache {
 
   public void getGroupById(int id, Action2<Boolean, Group> action) {
     if (groups.containsKey(id)) {
-      System.out.println("从缓存中获取群组数据：" + id);
+      LOG.info("从缓存中获取群组数据：" + id);
       action.run(true, groups.get(id));
     } else {
-      System.out.println("从DB中获取群组数据：" + id);
+      LOG.info("从DB中获取群组数据：" + id);
       dao().group().getGroupByID(id, (b, data) -> {
         Group group = null;
         if (b) {
@@ -81,7 +84,7 @@ public class GroupCache extends BaseCache {
 
     if (idsForDB.size() > 0) {
       String idStr = joiner.join(idsForDB);
-      System.out.println("从DB中获取群组数据：" + idStr);
+      LOG.info("从DB中获取群组数据：" + idStr);
       dao().group().getGroupsByIds(idStr, (b, data) -> {
         if (b) {
           data.forEach(value -> {

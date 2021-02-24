@@ -8,10 +8,14 @@ import io.vertx.mysqlclient.MySQLClient;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
 public class UserDao extends MySQLDao {
+  private static final Logger LOG = LoggerFactory.getLogger(UserDao.class);
+
   public void create(JsonObject user, Action2<Boolean, Long> action) {
     var fields =
             "username,password,token,nick,wx_token,wx_nick,sex,phone,email,ip,activities,groups";
@@ -37,9 +41,9 @@ public class UserDao extends MySQLDao {
                       if (ar.succeeded()) {
                         RowSet<Row> rows = ar.result();
                         lastInsertId = rows.property(MySQLClient.LAST_INSERTED_ID);
-                        System.out.println("Last Insert Id: " + lastInsertId);
+                        LOG.info("Last Insert Id: " + lastInsertId);
                       } else {
-                        System.out.println("Failure: " + ar.cause().getMessage());
+                        LOG.info("Failure: " + ar.cause().getMessage());
                       }
                       action.run(lastInsertId > 0, lastInsertId);
                     });
@@ -58,7 +62,7 @@ public class UserDao extends MySQLDao {
           jo = toJo(row.toJson());
         }
       } else {
-        System.out.println("Failure: " + ar.cause().getMessage());
+        LOG.info("Failure: " + ar.cause().getMessage());
       }
       action.run(Objects.nonNull(jo), jo);
     });
@@ -77,7 +81,7 @@ public class UserDao extends MySQLDao {
           jo = toJo(row.toJson());
         }
       } else {
-        System.out.println("Failure: " + ar.cause().getMessage());
+        LOG.info("Failure: " + ar.cause().getMessage());
       }
       action.run(Objects.nonNull(jo), jo);
     });
@@ -95,7 +99,7 @@ public class UserDao extends MySQLDao {
           jo.put(row.getInteger("id").toString(), toJo(row.toJson()));
         }
       } else {
-        System.out.println("Failure: " + ar.cause().getMessage());
+        LOG.info("Failure: " + ar.cause().getMessage());
       }
       action.run(!jo.isEmpty(), jo);
     });
@@ -126,7 +130,7 @@ public class UserDao extends MySQLDao {
       if (ar.succeeded()) {
         ret = true;
       } else {
-        System.out.println("Failure: " + ar.cause().getMessage());
+        LOG.info("Failure: " + ar.cause().getMessage());
       }
       action.run(ret);
     });

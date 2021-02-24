@@ -6,6 +6,8 @@ import com.iwayee.activity.func.Action2;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -14,6 +16,7 @@ import java.util.*;
  */
 public class ActivityCache extends BaseCache {
   private Map<Long, Activity> activities = new HashMap<>();
+  private static final Logger LOG = LoggerFactory.getLogger(ActivityCache.class);
 
   public static ActivityCache getInstance() {
     return Singleton.instance(ActivityCache.class);
@@ -32,10 +35,10 @@ public class ActivityCache extends BaseCache {
 
   public void getActivityById(long id, Action2<Boolean, Activity> action) {
     if (activities.containsKey(id)) {
-      System.out.println("从缓存中获取活动数据：" + id);
+      LOG.info("从缓存中获取活动数据：" + id);
       action.run(true, activities.get(id));
     } else {
-      System.out.println("从DB中获取活动数据：" + id);
+      LOG.info("从DB中获取活动数据：" + id);
       dao().act().getActivityById(id, (b, data) -> {
         Activity activity = null;
         if (b) {
@@ -85,7 +88,7 @@ public class ActivityCache extends BaseCache {
 
     if (idsForDB.size() > 0) {
       var idStr = joiner.join(idsForDB);
-      System.out.println("从DB中获取活动数据：" + idStr);
+      LOG.info("从DB中获取活动数据：" + idStr);
       dao().act().getActivitiesByIds(idStr, (b, data) -> {
         if (b) {
           data.forEach(value -> {
@@ -99,7 +102,7 @@ public class ActivityCache extends BaseCache {
         action.run(b, jr);
       });
     } else {
-      System.out.println("从缓存中获取活动数据：" + new JsonArray(ids).toString());
+      LOG.info("从缓存中获取活动数据：" + new JsonArray(ids).toString());
       action.run(true, jr);
     }
   }

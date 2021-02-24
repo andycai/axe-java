@@ -9,6 +9,8 @@ import com.iwayee.activity.func.Action2;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
@@ -19,6 +21,7 @@ public class UserCache extends BaseCache {
   private Map<String, User> usersForName = new HashMap<>();
   private Map<Long, User> usersForId = new HashMap<>();
   private Map<String, Session> sessions = new HashMap<>();
+  private static final Logger LOG = LoggerFactory.getLogger(UserCache.class);
 
   public static UserCache getInstance() {
     return Singleton.instance(UserCache.class);
@@ -39,9 +42,9 @@ public class UserCache extends BaseCache {
   public void getUserByName(String name, Action2<Boolean, User> action) {
     if (usersForName.containsKey(name)) {
       action.run(true, usersForName.get(name));
-      System.out.println("从缓存中获取用户数据：" + name);
+      LOG.info("从缓存中获取用户数据：" + name);
     } else {
-      System.out.println("从DB中获取用户数据：" + name);
+      LOG.info("从DB中获取用户数据：" + name);
       dao().user().getUserByName(name, (b, data) -> {
         User user = null;
         if (b) {
@@ -56,10 +59,10 @@ public class UserCache extends BaseCache {
   // 根据 id 获取用户数据
   public void getUserById(long id, Action2<Boolean, User> action) {
     if (usersForId.containsKey(id)) {
-      System.out.println("从缓存中获取用户数据：" + id);
+      LOG.info("从缓存中获取用户数据：" + id);
       action.run(true, usersForId.get(id));
     } else {
-      System.out.println("从DB中获取用户数据：" + id);
+      LOG.info("从DB中获取用户数据：" + id);
       dao().user().getUserById(id, (b, data) -> {
         User user = null;
         if (b) {
@@ -121,7 +124,7 @@ public class UserCache extends BaseCache {
     // 需要从DB获取
     if (idsFromDB.size() > 0) {
       String idStr = joiner.join(idsFromDB);
-      System.out.println("从DB中获取用户数据：" + idStr);
+      LOG.info("从DB中获取用户数据：" + idStr);
       dao().user().getUsersByIds(idStr, (b, data) -> {
         if (b) {
           data.forEach(value -> {
@@ -134,7 +137,7 @@ public class UserCache extends BaseCache {
         action.run(b, usersMap);
       });
     } else {
-      System.out.println("从缓存中获取用户数据：" + new JsonArray(ids).toString());
+      LOG.info("从缓存中获取用户数据：" + new JsonArray(ids).toString());
       action.run(true, usersMap);
     }
   }

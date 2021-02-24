@@ -8,10 +8,14 @@ import io.vertx.mysqlclient.MySQLClient;
 import io.vertx.sqlclient.Row;
 import io.vertx.sqlclient.RowSet;
 import io.vertx.sqlclient.Tuple;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Objects;
 
 public class ActivityDao extends MySQLDao {
+  private static final Logger LOG = LoggerFactory.getLogger(ActivityDao.class);
+
   public void create(JsonObject act, Action2<Boolean, Long> action) {
     var fields = "planner,group_id,kind,type,quota,title,`remark`,status,fee_type,fee_male,fee_female,queue,queue_sex,addr,ahead,begin_at,end_at";
     var sql = String.format("INSERT INTO activity (%s) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", fields);
@@ -39,9 +43,9 @@ public class ActivityDao extends MySQLDao {
       if (ar.succeeded()) {
         RowSet<Row> rows = ar.result();
         lastInsertId = rows.property(MySQLClient.LAST_INSERTED_ID);
-        System.out.println("Last Insert Id: " + lastInsertId);
+        LOG.info("Last Insert Id: " + lastInsertId);
       } else {
-        System.out.println("Failure: " + ar.cause().getMessage());
+        LOG.info("Failure: " + ar.cause().getMessage());
       }
       action.run(lastInsertId > 0, lastInsertId);
     });
@@ -59,7 +63,7 @@ public class ActivityDao extends MySQLDao {
           jr.add(toJo(row.toJson()));
         }
       } else {
-        System.out.println("Failure: " + ar.cause().getMessage());
+        LOG.info("Failure: " + ar.cause().getMessage());
       }
       action.run(!jr.isEmpty(), jr);
     });
@@ -77,7 +81,7 @@ public class ActivityDao extends MySQLDao {
           jo = toJo(row.toJson());
         }
       } else {
-        System.out.println("Failure: " + ar.cause().getMessage());
+        LOG.info("Failure: " + ar.cause().getMessage());
       }
       action.run(Objects.nonNull(jo), jo);
     });
@@ -95,7 +99,7 @@ public class ActivityDao extends MySQLDao {
           jr.add(toJo(row.toJson()));
         }
       } else {
-        System.out.println("Failure: " + ar.cause().getMessage());
+        LOG.info("Failure: " + ar.cause().getMessage());
       }
       action.run(!jr.isEmpty(), jr);
     });
@@ -118,7 +122,7 @@ public class ActivityDao extends MySQLDao {
       if (ar.succeeded()) {
         ret = true;
       } else {
-        System.out.println("Failure: " + ar.cause().getMessage());
+        LOG.info("Failure: " + ar.cause().getMessage());
       }
       action.run(ret);
     });
@@ -158,7 +162,7 @@ public class ActivityDao extends MySQLDao {
       if (ar.succeeded()) {
         ret = true;
       } else {
-        System.out.println("Failure: " + ar.cause().getMessage());
+        LOG.info("Failure: " + ar.cause().getMessage());
       }
       action.run(ret);
     });
