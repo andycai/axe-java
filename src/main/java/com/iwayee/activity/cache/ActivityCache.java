@@ -1,8 +1,6 @@
 package com.iwayee.activity.cache;
 
 import com.iwayee.activity.api.comp.Activity;
-import com.iwayee.activity.func.Action;
-import com.iwayee.activity.func.Action2;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -10,6 +8,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * TODO：缓存需要增加数量限制（LRU）
@@ -22,21 +22,21 @@ public class ActivityCache extends BaseCache {
     return Singleton.instance(ActivityCache.class);
   }
 
-  public void create(JsonObject jo, Action2<Boolean, Long> action) {
+  public void create(JsonObject jo, BiConsumer<Boolean, Long> action) {
     dao().act().create(jo, (b, newId) -> {
       if (b) {
         var activity = jo.mapTo(Activity.class);
         activity.id = newId;
         activities.put(activity.id, activity);
       }
-      action.run(b, newId);
+      action.accept(b, newId);
     });
   }
 
-  public void getActivityById(long id, Action2<Boolean, Activity> action) {
+  public void getActivityById(long id, BiConsumer<Boolean, Activity> action) {
     if (activities.containsKey(id)) {
       LOG.info("从缓存中获取活动数据：" + id);
-      action.run(true, activities.get(id));
+      action.accept(true, activities.get(id));
     } else {
       LOG.info("从DB中获取活动数据：" + id);
       dao().act().getActivityById(id, (b, data) -> {
@@ -45,12 +45,12 @@ public class ActivityCache extends BaseCache {
           activity = data.mapTo(Activity.class);
           cache(activity);
         }
-        action.run(b, activity);
+        action.accept(b, activity);
       });
     }
   }
 
-  public void getActivitiesByType(int type, int status, int page, int num, Action2<Boolean, JsonArray> action) {
+  public void getActivitiesByType(int type, int status, int page, int num, BiConsumer<Boolean, JsonArray> action) {
     dao().act().getActivitiesByType(type, status, page, num, (b, data) -> {
       var jr = new JsonArray();
       if (b) {
@@ -62,15 +62,15 @@ public class ActivityCache extends BaseCache {
           jr.add(activity);
         });
       }
-      action.run(b, jr);
+      action.accept(b, jr);
     });
   }
 
-  public void getActivitiesByIds(List<Long> ids, Action2<Boolean, JsonArray> action) {
+  public void getActivitiesByIds(List<Long> ids, BiConsumer<Boolean, JsonArray> action) {
     var jr = new JsonArray();
     var idsForDB = new ArrayList<Long>();
     if (ids.isEmpty()) {
-      action.run(false, jr);
+      action.accept(false, jr);
       return;
     }
 
@@ -99,23 +99,23 @@ public class ActivityCache extends BaseCache {
             jr.add(activity);
           });
         }
-        action.run(b, jr);
+        action.accept(b, jr);
       });
     } else {
       LOG.info("从缓存中获取活动数据：" + new JsonArray(ids).toString());
-      action.run(true, jr);
+      action.accept(true, jr);
     }
   }
 
-  public void syncToDB(long id, Action<Boolean> action) {
+  public void syncToDB(long id, Consumer<Boolean> action) {
     if (activities.containsKey(id)) {
       var activity = activities.get(id);
       dao().act().updateActivityById(id, JsonObject.mapFrom(activity), b -> {
-        action.run(b);
+        action.accept(b);
       });
       return;
     }
-    action.run(false);
+    action.accept(false);
   }
 
   // 私有方法

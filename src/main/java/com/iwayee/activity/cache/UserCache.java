@@ -4,8 +4,6 @@ import com.iwayee.activity.api.comp.Member;
 import com.iwayee.activity.api.comp.Player;
 import com.iwayee.activity.api.comp.Session;
 import com.iwayee.activity.api.comp.User;
-import com.iwayee.activity.func.Action;
-import com.iwayee.activity.func.Action2;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -13,6 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * TODO：缓存需要增加数量限制（LRU）
@@ -27,21 +27,21 @@ public class UserCache extends BaseCache {
     return Singleton.instance(UserCache.class);
   }
 
-  public void create(JsonObject jo, Action2<Boolean, Long> action) {
+  public void create(JsonObject jo, BiConsumer<Boolean, Long> action) {
     dao().user().create(jo, (b, data) -> {
       if (b) {
         jo.put("id", data);
         var user = jo.mapTo(User.class);
         cache(user);
       }
-      action.run(b, data);
+      action.accept(b, data);
     });
   }
 
   // 根据 username 获取用户数据
-  public void getUserByName(String name, Action2<Boolean, User> action) {
+  public void getUserByName(String name, BiConsumer<Boolean, User> action) {
     if (usersForName.containsKey(name)) {
-      action.run(true, usersForName.get(name));
+      action.accept(true, usersForName.get(name));
       LOG.info("从缓存中获取用户数据：" + name);
     } else {
       LOG.info("从DB中获取用户数据：" + name);
@@ -51,16 +51,16 @@ public class UserCache extends BaseCache {
           user = data.mapTo(User.class);
           cache(user);
         }
-        action.run(b, user);
+        action.accept(b, user);
       });
     }
   }
 
   // 根据 id 获取用户数据
-  public void getUserById(long id, Action2<Boolean, User> action) {
+  public void getUserById(long id, BiConsumer<Boolean, User> action) {
     if (usersForId.containsKey(id)) {
       LOG.info("从缓存中获取用户数据：" + id);
-      action.run(true, usersForId.get(id));
+      action.accept(true, usersForId.get(id));
     } else {
       LOG.info("从DB中获取用户数据：" + id);
       dao().user().getUserById(id, (b, data) -> {
@@ -69,7 +69,7 @@ public class UserCache extends BaseCache {
           user = data.mapTo(User.class);
           cache(user);
         }
-        action.run(b, user);
+        action.accept(b, user);
       });
     }
   }
@@ -103,9 +103,9 @@ public class UserCache extends BaseCache {
   }
 
   // 批量获取用户数据
-  public void getUsersByIds(List<Long> ids, Action2<Boolean, Map<Long, User>> action) {
+  public void getUsersByIds(List<Long> ids, BiConsumer<Boolean, Map<Long, User>> action) {
     if (ids.size() <= 0) {
-      action.run(false, null);
+      action.accept(false, null);
       return;
     }
     var idsFromDB = new ArrayList<Long>(); // 需要从DB获取数据的列表
@@ -134,11 +134,11 @@ public class UserCache extends BaseCache {
             usersMap.put(user.id, user);
           });
         }
-        action.run(b, usersMap);
+        action.accept(b, usersMap);
       });
     } else {
       LOG.info("从缓存中获取用户数据：" + new JsonArray(ids).toString());
-      action.run(true, usersMap);
+      action.accept(true, usersMap);
     }
   }
 
@@ -188,15 +188,15 @@ public class UserCache extends BaseCache {
     return true;
   }
 
-  public void syncToDB(long id, Action<Boolean> action) {
+  public void syncToDB(long id, Consumer<Boolean> action) {
     if (usersForId.containsKey(id)) {
       var user = usersForId.get(id);
       dao().user().updateUserById(id, JsonObject.mapFrom(user), b -> {
-        action.run(b);
+        action.accept(b);
       });
       return;
     }
-    action.run(false);
+    action.accept(false);
   }
 
   // 私有方法

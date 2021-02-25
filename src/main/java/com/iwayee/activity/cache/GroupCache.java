@@ -2,8 +2,6 @@ package com.iwayee.activity.cache;
 
 import com.iwayee.activity.api.comp.Group;
 import com.iwayee.activity.define.GroupPosition;
-import com.iwayee.activity.func.Action;
-import com.iwayee.activity.func.Action2;
 import com.iwayee.activity.utils.Singleton;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -11,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * TODO：缓存需要增加数量限制（LRU）
@@ -23,7 +23,7 @@ public class GroupCache extends BaseCache {
     return Singleton.instance(GroupCache.class);
   }
 
-  public void create(JsonObject jo, long uid, Action2<Boolean, Long> action) {
+  public void create(JsonObject jo, long uid, BiConsumer<Boolean, Long> action) {
     var group = jo.mapTo(Group.class);
     var now = new Date().getTime();
     group.level = 1;
@@ -41,14 +41,14 @@ public class GroupCache extends BaseCache {
         group.id = newId.intValue();
         cache(group);
       }
-      action.run(b, newId);
+      action.accept(b, newId);
     });
   }
 
-  public void getGroupById(int id, Action2<Boolean, Group> action) {
+  public void getGroupById(int id, BiConsumer<Boolean, Group> action) {
     if (groups.containsKey(id)) {
       LOG.info("从缓存中获取群组数据：" + id);
-      action.run(true, groups.get(id));
+      action.accept(true, groups.get(id));
     } else {
       LOG.info("从DB中获取群组数据：" + id);
       dao().group().getGroupByID(id, (b, data) -> {
@@ -57,14 +57,14 @@ public class GroupCache extends BaseCache {
           group = data.mapTo(Group.class);
           cache(group);
         }
-        action.run(b, group);
+        action.accept(b, group);
       });
     }
   }
 
-  public void getGroupsByIds(List<Integer> ids, Action2<Boolean, JsonArray> action) {
+  public void getGroupsByIds(List<Integer> ids, BiConsumer<Boolean, JsonArray> action) {
     if (ids.size() <= 0) {
-      action.run(false, null);
+      action.accept(false, null);
       return;
     }
     var idsForDB = new ArrayList<Integer>();
@@ -95,14 +95,14 @@ public class GroupCache extends BaseCache {
             jr.add(group.toJson());
           });
         }
-        action.run(b, jr);
+        action.accept(b, jr);
       });
     } else {
-      action.run(true, jr);
+      action.accept(true, jr);
     }
   }
 
-  public void getGroups(int page, int num, Action2<Boolean, JsonArray> action) {
+  public void getGroups(int page, int num, BiConsumer<Boolean, JsonArray> action) {
     dao().group().getGroups(page, num, (b, data) -> {
       var jr = new JsonArray();
       if (b) {
@@ -116,19 +116,19 @@ public class GroupCache extends BaseCache {
         }
       }
 
-      action.run(b, jr);
+      action.accept(b, jr);
     });
   }
 
-  public void syncToDB(int id, Action<Boolean> action) {
+  public void syncToDB(int id, Consumer<Boolean> action) {
     if (groups.containsKey(id)) {
       var group = groups.get(id);
       dao().group().updateGroupById(id, JsonObject.mapFrom(group), b -> {
-        action.run(b);
+        action.accept(b);
       });
       return;
     }
-    action.run(false);
+    action.accept(false);
   }
 
   // 私有方法
